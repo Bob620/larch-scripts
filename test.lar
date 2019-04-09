@@ -1,141 +1,153 @@
 import os
 
-baseUriRaw = input('Enter the file Location: ')
+version = '1.0.0'
+
+baseUriRaw = input('Enter the directory Location: ')
 outputNameRaw = input('Enter output project name(optional, enter for none): ')
 metaFileNameRaw = input('Enter metadata file(default: same as file location + \'meta.csv\'): ')
 defaultFormulaRaw = input('Enter a default formula(default: skips files without formula): ')
 
-# TODO: Process raw input
+if not baseUriRaw.endswith('/'):
+	baseUriRaw += '/'
+endif
+baseUri = baseUriRaw.replace('\\', '/')
 
-baseUri = 'C:/Users/EPMA_Castaing/work/avishek/testdata/'
-outputName = 'output.prj'
-metaName = 'meta.csv'
-meta = {}
-defaultMeta = {'formula': 'Si1.849Ti0.044Al0.256Cr0Fe0.334Mn0.008Mg0.588Ca0.835Na0.128O6'}
-
-directory = None
-directory = os.scandir(baseUri)
-
-try:
-    fh = open(baseUri + metaName, 'r')
-except IOError:
-    print('No meta file found')
-    metaLines = []
-else:
-    metaLines = fh.readlines()
-    fh.close()
-endtry
-
-names = []
-for line in metaLines:
-	info = []
-	info = line.strip('\n').split(',')
-
-	if len(names) == 0:
-		for name in info:
-			names.append(name.strip())
-		endfor
-	else:
-		if len(info) >= len(names):
-			meta[info[0].strip()] = {'formula': info[1].strip()}
-		endif
-	endif
-endfor
-
-outputData = []
-
-for entry in directory:
-	if entry.is_file():
-		if entry.name.endswith('.001'):
-			print('Reading in', entry.name, '...')
-			try:
-				file = read_ascii(entry.path, labels='energy 0 i0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 Fe_Ka1 Fe_Ka2 Fe_Ka3 Fe_Ka4')
-			except Exception:
-				print('not able to read', entry.name)
-			else:
-				print('Getting metadata...')
-				try:
-					thisMeta = meta[entry.name]
-				except Exception:
-					formula = defaultMeta['formula']
-					print('No metadata found.')
-				else:
-					print(thisMeta)
-					formula = thisMeta['formula']
-					print('Got metadata.')
-				endtry
-
-				print('Calculating mu for fe_ka...')
-				file.mu = (file.fe_ka1 + file.fe_ka2 + file.fe_ka3 + file.fe_ka4)/file.i0
-
-				print('Calculating the Pre-Edge Subtraction/Normalization...')
-				pre_edge(file, group=file, pre1=-67.40, pre2=-30.00, norm1=77.96, norm2=250.60)
-
-				print('Calculating the Over Absorption...')
-				fluo_corr(energy=file.energy, mu=file.mu, group=file, elem='Fe', formula=formula)
-
-				print('Calculating the Baseline Subtraction...')
-				pre_edge_baseline(energy=file, norm=file.norm_corr, group=file, emin=7105)
-
-				outputData.append(file)
-			endtry
-		endif
-	endif
-endfor
-
-directory.close()
-
-newplot(outputData[0].energy, outputData[0].norm_corr, label=outputData[0].filename + '_abs_corr_1.0.0',
-        xlabel='Energy (eV)',
-        ylabel='normalized $ \mu(E) $',
-        title='normalized abscorr $ \mu(E) $',
-        show_legend=True)
-
-#if directory.
-#os.remove('C:/Users/EPMA_Castaing/work/avishek/testdata/output.prj')
-
-if outputName is not '':
-	try:
-		os.remove(baseUri + outputName + '_abs_corr_1.0.0.prj')
-	except Exception:
-		pass
-	endtry
-
-	outputProject = create_athena(baseUri + outputName + '_abs_corr_1.0.0.prj')
+#if outputNameRaw is '':
+#	outputName = 'output_' + version + '.prj'
+#endif
+if outputNameRaw is not '' and not outputNameRaw.endswith('.prj'):
+	outputName = outputNameRaw + '.prj'
 endif
 
-for i in range(0, len(outputData)):
-	data = outputData[i]
+#baseUri = 'C:/Users/EPMA_Castaing/work/avishek/testdata/test/'
+#outputName = 'output.prj'
+metaName = 'meta.csv'
 
-	data.filename = data.filename + '_abs_corr_1.0.0'
-	data.mufluor = data.norm_corr
-	delattr(data, 'mu')
+meta = {}
+#defaultMeta = {'formula': 'Si1.849Ti0.044Al0.256Cr0Fe0.334Mn0.008Mg0.588Ca0.835Na0.128O6'}
 
-	if i != 0:
-		print('graphing', data.filename)
-		plot(data.energy, data.norm_corr, label=data.filename)
-	endif
+try:
+	directory = None
+	directory = os.scandir(baseUri)
+except Exception:
+	print('\nDirectory not accessible.\n')
+else:
+	try:
+		fh = open(baseUri + metaName, 'r')
+	except IOError:
+		print('No meta file found\n')
+		metaLines = []
+	else:
+		metaLines = fh.readlines()
+		fh.close()
+	endtry
 
-	if outputName is '':
-		print('writing out data')
+	names = []
+	for line in metaLines:
+		info = []
+		info = line.strip('\n').split(',')
+
+		if len(names) == 0:
+			for name in info:
+				names.append(name.strip())
+			endfor
+		else:
+			if len(info) >= len(names):
+				meta[info[0].strip()] = {'formula': info[1].strip()}
+			endif
+		endif
+	endfor
+
+	outputData = []
+
+	for entry in directory:
+		if entry.is_file():
+			if entry.name.endswith('.001'):
+				print('Reading in', entry.name, '...')
+				try:
+					file = read_ascii(entry.path, labels='energy 0 i0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 Fe_Ka1 Fe_Ka2 Fe_Ka3 Fe_Ka4')
+				except Exception:
+					print('not able to read', entry.name)
+				else:
+					print('Getting metadata...')
+					try:
+						thisMeta = meta[entry.name]
+					except Exception:
+						print('No metadata found.')
+					else:
+						formula = thisMeta['formula']
+						print('Got metadata.')
+
+						print('Calculating mu for fe_ka...')
+						file.mu = (file.fe_ka1 + file.fe_ka2 + file.fe_ka3 + file.fe_ka4)/file.i0
+
+						print('Calculating the Pre-Edge Subtraction/Normalization...')
+						pre_edge(file, group=file, pre1=-67.40, pre2=-30.00, norm1=77.96, norm2=250.60)
+
+						print('Calculating the Over Absorption...')
+						fluo_corr(energy=file.energy, mu=file.mu, group=file, elem='Fe', formula=formula)
+
+						print('Calculating the Baseline Subtraction...')
+						pre_edge_baseline(energy=file, norm=file.norm_corr, group=file, emin=7105)
+
+						outputData.append(file)
+					endtry
+				endtry
+			endif
+		endif
+	endfor
+
+	directory.close()
+
+	newplot(outputData[0].energy, outputData[0].norm_corr, label=outputData[0].filename + '_abs_corr_1.0.0',
+			xlabel='Energy (eV)',
+			ylabel='normalized $ \mu(E) $',
+			title='normalized abscorr $ \mu(E) $',
+			show_legend=True)
+
+	if outputName is not '':
 		try:
-			os.remove(baseUri + data.filename + '_abs_corr_1.0.0.prj')
+			os.remove(baseUri + outputName + '_abs_corr_' + version + '.prj')
 		except Exception:
 			pass
 		endtry
 
-		outputProject = create_athena(baseUri + data.filename + '_abs_corr_1.0.0.prj')
-		outputProject.add_group(data)
-		outputProject.save()
-	else:
-		outputProject.add_group(data)
+		outputProject = create_athena(baseUri + outputName + '_abs_corr_' + version + '.prj')
 	endif
-endfor
 
-print('writing out data')
-if outputName is not '':
-	outputProject.save()
-endif
+	for i in range(0, len(outputData)):
+		data = outputData[i]
+
+		data.filename = data.filename + '_abs_corr_' + version
+		data.mufluor = data.norm_corr
+		delattr(data, 'mu')
+
+		if i != 0:
+			print('graphing', data.filename)
+			plot(data.energy, data.norm_corr, label=data.filename)
+		endif
+
+		if outputName is '':
+			print('writing out data')
+			try:
+				os.remove(baseUri + data.filename + '.prj')
+			except Exception:
+				pass
+			endtry
+
+			outputProject = create_athena(baseUri + data.filename + '.prj')
+			outputProject.add_group(data)
+			outputProject.save()
+		else:
+			outputProject.add_group(data)
+		endif
+	endfor
+
+	print('writing out data')
+	if outputName is not '':
+		outputProject.save()
+	endif
+endtry
 
 print('cleaning up...')
 
@@ -158,6 +170,7 @@ outputName = None
 metaName = None
 meta = None
 defaultMeta = None
+version = None
 
 directory = None
 
