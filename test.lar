@@ -78,9 +78,6 @@ for entry in directory:
 				pre_edge_baseline(energy=file, norm=file.norm_corr, group=file, emin=7105)
 
 				outputData.append(file)
-				thisMeta = None
-				file = None
-				formula = None
 			endtry
 		endif
 	endif
@@ -88,7 +85,7 @@ endfor
 
 directory.close()
 
-newplot(outputData[0].energy, outputData[0].norm_corr, label=outputData[0].filename,
+newplot(outputData[0].energy, outputData[0].norm_corr, label=outputData[0].filename + '_abs_corr_1.0.0',
         xlabel='Energy (eV)',
         ylabel='normalized $ \mu(E) $',
         title='normalized abscorr $ \mu(E) $',
@@ -97,24 +94,48 @@ newplot(outputData[0].energy, outputData[0].norm_corr, label=outputData[0].filen
 #if directory.
 #os.remove('C:/Users/EPMA_Castaing/work/avishek/testdata/output.prj')
 
+if outputName is not '':
+	try:
+		os.remove(baseUri + outputName + '_abs_corr_1.0.0.prj')
+	except Exception:
+		pass
+	endtry
+
+	outputProject = create_athena(baseUri + outputName + '_abs_corr_1.0.0.prj')
+endif
+
 for i in range(0, len(outputData)):
 	data = outputData[i]
+
+	data.filename = data.filename + '_abs_corr_1.0.0'
+	data.mufluor = data.norm_corr
+	delattr(data, 'mu')
 
 	if i != 0:
 		print('graphing', data.filename)
 		plot(data.energy, data.norm_corr, label=data.filename)
 	endif
 
-	print('writing out data')
-	try:
-		os.remove('C:/Users/EPMA_Castaing/work/avishek/testdata/' + data.filename + '_abs_corr_test.prj')
-	except Exception:
-		pass
-	endtry
-	outputProject = create_athena('C:/Users/EPMA_Castaing/work/avishek/testdata/' + data.filename + '_abs_corr_test.prj')
-	outputProject.add_group(data)
-	outputProject.save()
+	if outputName is '':
+		print('writing out data')
+		try:
+			os.remove(baseUri + data.filename + '_abs_corr_1.0.0.prj')
+		except Exception:
+			pass
+		endtry
+
+		outputProject = create_athena(baseUri + data.filename + '_abs_corr_1.0.0.prj')
+		outputProject.add_group(data)
+		outputProject.save()
+	else:
+		outputProject.add_group(data)
+	endif
 endfor
+
+print('writing out data')
+if outputName is not '':
+	outputProject.save()
+endif
 
 print('cleaning up...')
 
