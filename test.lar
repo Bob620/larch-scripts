@@ -1,11 +1,20 @@
 import os
+import math
 
 version = '1.0.0'
+edgeStartEnergy = 7118.5
+edgeEndEnergy = 7123.5
 
 baseUriRaw = input('Enter the directory Location: ')
 outputNameRaw = input('Enter output project name(optional, enter for none): ')
 metaFileNameRaw = input('Enter metadata file name(default: \'meta.csv\'): ')
 defaultFormulaRaw = input('Enter a default formula(default: skips files without formula): ')
+willGraphRaw = input('Do you want to graph these?(y/n default: n) ')
+
+willGraph = False
+if willGraphRaw.startswith('y'):
+    willGraph = True
+endif
 
 if not baseUriRaw.endswith('/'):
 	baseUriRaw += '/'
@@ -31,6 +40,9 @@ meta = {}
 #defaultMeta = {'formula': 'Si1.849Ti0.044Al0.256Cr0Fe0.334Mn0.008Mg0.588Ca0.835Na0.128O6'}
 #baseUri = 'C:/Users/EPMA_Castaing/work/avishek/testdata/test/'
 #outputName = 'output.prj'
+
+# 7118.5
+# 7125.0
 
 try:
 	directory = None
@@ -111,13 +123,103 @@ else:
 
 	directory.close()
 
-	if outputData[0] is not None:
-		newplot(outputData[0].energy, outputData[0].norm_corr, label=outputData[0].filename + '_abs_corr_1.0.0',
-				xlabel='Energy (eV)',
-				ylabel='normalized $ \mu(E) $',
-				title='normalized abscorr $ \mu(E) $',
-				show_legend=True)
-	endif
+    if willGraph and outputData[0] is not None:
+        print('graphing', outputData[0].filename + '_abs_corr_' + version)
+        newplot(outputData[0].energy, outputData[0].norm_corr, label=outputData[0].filename + '_abs_corr_1.0.0',
+                xlabel='Energy (eV)',
+                ylabel='normalized $ \mu(E) $',
+                title='normalized abscorr $ \mu(E) $',
+                show_legend=True,
+                marker=None)
+    endif
+
+	for i in range(0, len(outputData)):
+	    data = outputData[i]
+
+        startIndexDiff = 0
+        endIndexDiff = 0
+        startIndex = 0
+        endIndex = 0
+
+        for j in range(0, len(data.energy)):
+            startEnergyD = abs(data.energy[j] - edgeStartEnergy)
+            if startEnergyD < abs(data.energy[startIndex] - edgeStartEnergy):
+                startIndexDiff = abs(data.energy[startIndex] - edgeStartEnergy)
+                startIndex = j
+            endif
+
+            endEnergyD = abs(data.energy[j] - edgeEndEnergy)
+            if endEnergyD < abs(data.energy[endIndex] - edgeEndEnergy):
+                endIndexDiff = abs(data.energy[startIndex] - edgeEndEnergy)
+                endIndex = j
+            endif
+        endfor
+
+	    startValue = data.norm_corr[startIndex]
+	    endValue = data.norm_corr[endIndex]
+
+	    linearLine = []
+	    lastValue = startValue
+	    for j in range(0, endIndex - startIndex):
+	        linearLine.append(lastValue)
+    	    lastValue += (endValue - startValue)/(endIndex - startIndex)
+	    endfor
+
+
+	    linearLine.append(endValue)
+
+        farthestIndex = 0
+        farthestDiff = 0
+        for j in range(0, len(linearLine)):
+            diff = data.norm_corr[startIndex + j] - linearLine[j]
+
+            if diff > 0 and diff > farthestDiff:
+                farthestDiff = diff
+                farthestIndex = j
+            endif
+	    endfor
+
+	    closestIndex = 0
+	    closestDiff = 9999
+	    for j in range(farthestIndex, len(linearLine)):
+	        diff = data.norm_corr[startIndex + j] - linearLine[j]
+
+	        if diff < closestDiff:
+	            closestDiff = diff
+	            closestIndex = j
+	        else:
+	            pass
+	        endif
+	    endfor
+
+	    avgTangentSlope = ((data.norm_corr[farthestIndex - 1] - data.norm_corr[farthestIndex]) + (data.norm_corr[farthestIndex] - data.norm_corr[farthestIndex + 1]))/2
+"""        tangentIntersectIndex = 0
+        tangentIntersectDiff = 9999
+
+	    for j in range(0, 1000):
+	        diff = ((avgTangentSlope*j)+data.norm_corr[farthestIndex]) - data.norm_corr[closestIndex]
+
+	        if diff < tangentIntersectDiff:
+	            tangentIntersectDiff = diff
+	            tangentIntersectIndex = j
+	        endif
+	    endfor
+"""
+
+        angle = 180 - abs(math.degrees(math.atan(avgTangentSlope)) - math.degrees(math.atan(0)))
+
+
+    	print(data.filename, '   ', farthestIndex, '   ', data.norm_corr[farthestIndex + startIndex], '   ', data.energy[farthestIndex + startIndex], '   ', farthestDiff, '   ', closestDiff, '   ', closestIndex, '   ', angle)
+
+        if willGraph:
+            plot_marker(data.energy[farthestIndex + startIndex], data.norm_corr[farthestIndex + startIndex], marker='o')
+            plot(data.energy[startIndex:endIndex+1], linearLine, marker=None, style='solid')
+        endif
+	endfor
+
+
+
+
 
 	if outputName is not '':
 		try:
@@ -136,9 +238,9 @@ else:
 		data.mufluor = data.norm_corr
 		delattr(data, 'mu')
 
-		if i != 0:
+		if willGraph and i != 0:
 			print('graphing', data.filename)
-			plot(data.energy, data.norm_corr, label=data.filename)
+			plot(data.energy, data.norm_corr, label=data.filename, marker=None)
 		endif
 
 		if outputName is '':
