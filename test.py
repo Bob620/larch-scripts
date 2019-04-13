@@ -1,6 +1,14 @@
 import os
 import math
 
+import numpy as np
+import pylab
+from larch import Interpreter, Group
+from larch_plugins.xafs import pre_edge, pre_edge_baseline, fluo_corr
+from larch_plugins.io import read_ascii
+from larch_plugins.plotter import newplot, plot, plot_marker
+
+larchInstance = Interpreter()
 version = '1.0.0'
 edgeStartEnergy = 7118.5
 edgeEndEnergy = 7123.5
@@ -14,43 +22,38 @@ willGraphRaw = input('Do you want to graph these?(y/n default: n) ')
 willGraph = False
 if willGraphRaw.startswith('y'):
     willGraph = True
-endif
 
 if not baseUriRaw.endswith('/'):
     baseUriRaw += '/'
-endif
 baseUri = baseUriRaw.replace('\\', '/')
 
 outputName = ''
 if outputNameRaw is not '' and not outputNameRaw.endswith('.prj'):
     outputName = outputNameRaw + '.prj'
-endif
 
 metaName = 'meta.csv'
 if metaFileNameRaw is not '':
     metaName = metaFileNameRaw
-endif
 
 defaultMeta = None
 if defaultFormulaRaw is not '':
     defaultMeta = {'formula': defaultFormulaRaw.strip()}
-endif
 
 meta = {}
 outputData = []
 
-#defaultMeta = {'formula': 'Si1.849Ti0.044Al0.256Cr0Fe0.334Mn0.008Mg0.588Ca0.835Na0.128O6'}
-#baseUri = 'C:/Users/EPMA_Castaing/work/avishek/testdata/test/'
-#outputName = 'output.prj'
+# defaultMeta = {'formula': 'Si1.849Ti0.044Al0.256Cr0Fe0.334Mn0.008Mg0.588Ca0.835Na0.128O6'}
+# baseUri = 'C:/Users/EPMA_Castaing/work/avishek/testdata/test/'
+# outputName = 'output.prj'
 
 # 7118.5
 # 7125.0
 
 sampleNameHeader = 'sample number'
 sampleFormulaHeader = 'formula'
+directory = None
 
 try:
-    directory = None
     directory = os.scandir(baseUri)
 except IOError:
     print('\nDirectory not accessible.\n')
@@ -65,82 +68,65 @@ else:
         metaLines = fh.readlines()
         fh.close()
         print('Meta file read in')
-    endtry
 
     metaColumnNames = []
     for line in metaLines:
-        info = []
         info = line.strip('\n').split(',')
 
         if len(metaColumnNames) == 0:
             for name in info:
                 metaColumnNames.append(name.strip().lower())
-            endfor
+
         else:
             if len(info) >= len(metaColumnNames):
-                meta[info[metaColumnNames.index(sampleNameHeader)].strip()] = {'formula': info[metaColumnNames.index(sampleFormulaHeader)].strip()}
-            endif
-        endif
-    endfor
-endtry
+                meta[info[metaColumnNames.index(sampleNameHeader)].strip()] = {
+                    'formula': info[metaColumnNames.index(sampleFormulaHeader)].strip()}
 
-files = []
+if directory is not None:
+    for entry in directory:
+        if entry.is_file():
+            if entry.name.endswith('.001'):
+                print('Reading in', entry.name, '...')
+                try:
+                    file = read_ascii(entry.path,
+                                      labels='energy 0 i0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 Fe_Ka1 Fe_Ka2 Fe_Ka3 Fe_Ka4')
+                except Exception as err:
+                    print('not able to read', entry.name)
+                    print(err)
+                else:
+                    print('Getting metadata...')
+                    thisMeta = None
 
-for entry in directory:
-    if entry.is_file():
-        if entry.name.endswith('.001'):
-            print('Reading in', entry.name, '...')
-            try:
-                files.append(read_ascii(entry.path, labels='energy 0 i0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 Fe_Ka1 Fe_Ka2 Fe_Ka3 Fe_Ka4'))
-            except Exception:
-                print('not able to read', entry.name)
-            endtry
-        endif
-    endif
-endfor
+                    for metaName, metadata in meta.items():
+                        if entry.name.startswith(metaName):
+                            thisMeta = metadata
+                            pass
 
-directory.close()
+                    if thisMeta is None:
+                        print('No metadata found.')
+                        if defaultMeta is not None:
+                            print('Using default metadata')
+                            thisMeta = defaultMeta
 
-for file in files:
-    print('Getting metadata for', file.filename, '...')
+                    if thisMeta is not None:
+                        formula = thisMeta['formula']
+                        print('Got metadata.')
 
-    for metaName, metadata in meta.items():
-        print(metaName, '   ', file.filename)
-        if file.filename.startswith(metaName):
-            thisMeta = metadata
-            break
-        endif
-    endfor
+                        print('Calculating mu for fe_ka...')
+                        file.mu = (file.fe_ka1 + file.fe_ka2 + file.fe_ka3 + file.fe_ka4) / file.i0
 
-    if thisMeta is None:
-        print('No metadata found.')
-        if defaultMeta is not None:
-            print('Using default metadata')
-            thisMeta = defaultMeta
-        endif
-    endif
+                        print('Calculating the Pre-Edge Subtraction/Normalization...')
+                        pre_edge(file, group=file, pre1=-67.40, pre2=-30.00, norm1=77.96, norm2=250.60)
 
-    if thisMeta is not None:
-        formula = thisMeta['formula']
-        print('Got metadata.')
+                        print('Calculating the Over Absorption...')
+                        fluo_corr(energy=file.energy, mu=file.mu, group=file, elem='Fe', formula=formula)
 
-        print('Calculating mu for fe_ka...')
-        file.mu = (file.fe_ka1 + file.fe_ka2 + file.fe_ka3 + file.fe_ka4)/file.i0
+                        print('Calculating the Baseline Subtraction...')
+                        pre_edge_baseline(energy=file, norm=file.norm_corr, group=file, emin=7105)
 
-        print('Calculating the Pre-Edge Subtraction/Normalization...')
-        pre_edge(file, group=file, pre1=-67.40, pre2=-30.00, norm1=77.96, norm2=250.60)
+                        outputData.append(file)
 
-        print('Calculating the Over Absorption...')
-        fluo_corr(energy=file.energy, mu=file.mu, group=file, elem='Fe', formula=formula)
-
-        print('Calculating the Baseline Subtraction...')
-        pre_edge_baseline(energy=file, norm=file.norm_corr, group=file, emin=7105)
-
-        outputData.append(file)
-    endif
-endfor
-
-files = None
+    directory.close()
 
 print('Read in', len(outputData), 'files.')
 
@@ -148,7 +134,8 @@ if len(outputData) > 0:
     for data in outputData:
         print('Preparing', data.filename, '...')
         data.filename = data.filename + '_abs_corr_' + version
-    endfor
+
+    print(outputData[0])
 
     try:
         if willGraph:
@@ -166,14 +153,13 @@ if len(outputData) > 0:
                             marker=None
                             )
                     graphMade = True
-                endif
+
                 print('Graphed', data.filename)
-            endfor
-        endif
+
+
     except Exception:
         willGraph = False
         print('Graphing failed for unknown reason')
-    endtry
 
     print('\nCalculating relative positions and energies...\n')
 
@@ -211,14 +197,11 @@ if len(outputData) > 0:
                 if startEnergyD < abs(data.energy[startIndex] - edgeStartEnergy):
                     startIndexDiff = abs(data.energy[startIndex] - edgeStartEnergy)
                     startIndex = j
-                endif
 
                 endEnergyD = abs(data.energy[j] - edgeEndEnergy)
                 if endEnergyD < abs(data.energy[endIndex] - edgeEndEnergy):
                     endIndexDiff = abs(data.energy[startIndex] - edgeEndEnergy)
                     endIndex = j
-                endif
-            endfor
 
             startValue = data.norm_corr[startIndex]
             endValue = data.norm_corr[endIndex]
@@ -227,9 +210,7 @@ if len(outputData) > 0:
             lastValue = startValue
             for j in range(0, endIndex - startIndex):
                 linearLine.append(lastValue)
-                lastValue += (endValue - startValue)/(endIndex - startIndex)
-            endfor
-
+                lastValue += (endValue - startValue) / (endIndex - startIndex)
 
             linearLine.append(endValue)
 
@@ -241,8 +222,6 @@ if len(outputData) > 0:
                 if diff > 0 and diff > farthestPositiveDiff:
                     farthestPositiveDiff = diff
                     farthestPositiveIndex = j
-                endif
-            endfor
 
             closestIndex = 0
             closestDiff = 9999
@@ -254,8 +233,6 @@ if len(outputData) > 0:
                     closestIndex = j
                 else:
                     pass
-                endif
-            endfor
 
             farthestNegativeIndex = 0
             farthestNegativeDiff = 0
@@ -265,10 +242,9 @@ if len(outputData) > 0:
                 if diff < 0 and diff < farthestNegativeDiff:
                     farthestNegativeDiff = diff
                     farthestNegativeIndex = j
-                endif
-            endfor
 
-            avgTangentSlope = ((data.norm_corr[farthestPositiveIndex - 1] - data.norm_corr[farthestPositiveIndex]) + (data.norm_corr[farthestPositiveIndex] - data.norm_corr[farthestPositiveIndex + 1]))/2
+            avgTangentSlope = ((data.norm_corr[farthestPositiveIndex - 1] - data.norm_corr[farthestPositiveIndex]) + (
+                        data.norm_corr[farthestPositiveIndex] - data.norm_corr[farthestPositiveIndex + 1])) / 2
             shoulderAngle = 180 - abs(math.degrees(math.atan(avgTangentSlope)) - math.degrees(math.atan(0)))
 
             print(data.filename.ljust(25)[:25], '   ',
@@ -294,24 +270,25 @@ if len(outputData) > 0:
             print('')
 
             if willGraph:
-                plot_marker(data.energy[farthestPositiveIndex + startIndex], data.norm_corr[farthestPositiveIndex + startIndex], marker='o')
-                plot_marker(data.energy[farthestNegativeIndex + startIndex], data.norm_corr[farthestNegativeIndex + startIndex], marker='x')
-                plot(data.energy[startIndex:endIndex+1], linearLine, marker=None, style='solid', label='Linear ' + data.filename)
-            endif
+                plot_marker(data.energy[farthestPositiveIndex + startIndex],
+                            data.norm_corr[farthestPositiveIndex + startIndex], marker='o')
+                plot_marker(data.energy[farthestNegativeIndex + startIndex],
+                            data.norm_corr[farthestNegativeIndex + startIndex], marker='x')
+                plot(data.energy[startIndex:endIndex + 1], linearLine, marker=None, style='solid',
+                     label='Linear ' + data.filename)
+
         else:
             print(data.filename, ' has no norm_corr. Potential errors occurred\n')
-        endif
-    endfor
+
+    outputProject = None
 
     if outputName is not '':
         try:
             os.remove(baseUri + outputName + '_abs_corr_' + version + '.prj')
         except Exception:
             pass
-        endtry
 
         outputProject = create_athena(baseUri + outputName + '_abs_corr_' + version + '.prj')
-    endif
 
     for data in outputData:
         if data.norm_corr is not None:
@@ -324,27 +301,22 @@ if len(outputData) > 0:
                     os.remove(baseUri + data.filename + '.prj')
                 except Exception:
                     pass
-                endtry
 
                 outputProject = create_athena(baseUri + data.filename + '.prj')
                 outputProject.add_group(data)
                 outputProject.save()
             else:
                 outputProject.add_group(data)
-            endif
+
         else:
             print(data.filename, 'has no norm_corr to write out')
-        endif
-    endfor
 
     if outputName is not '':
         print('writing out data')
         outputProject.save()
-    endif
+
 else:
     print('Unable to read in any data')
-endif
-
 
 print('cleaning up...')
 
@@ -371,29 +343,27 @@ version = None
 
 directory = None
 
-
 print('\n\nOutput Finished.')
 
-#plot_prepeaks_baseline(dgroup=file)
-
+# plot_prepeaks_baseline(dgroup=file)
 
 
 """
 newplot(file.energy, file.norm, label='normalized $ \mu(E) $',
-        xlabel='Energy (eV)',
-        ylabel='normalized $ \mu(E) $',
-        title='post-normalization ',
-        show_legend=True)
+		xlabel='Energy (eV)',
+		ylabel='normalized $ \mu(E) $',
+		title='post-normalization ',
+		show_legend=True)
 
 newplot(file.energy, file.mu, label=' $ \mu(E) $ ',
-        xlabel='Energy (eV)',
-        ylabel='fe_ka/i0',
-        title='pre-normalization ',
-        show_legend=True)
+		xlabel='Energy (eV)',
+		ylabel='fe_ka/i0',
+		title='pre-normalization ',
+		show_legend=True)
 
 plot(file.energy, file.pre_edge, label='pre-edge line',
-     color='black', style='dashed' )
+	 color='black', style='dashed' )
 
 plot(file.energy, file.post_edge, label='normalization line',
-     color='black', style='dotted' )
+	 color='black', style='dotted' )
 """
