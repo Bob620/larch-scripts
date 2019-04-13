@@ -13,7 +13,7 @@ willGraphRaw = input('Do you want to graph these?(y/n default: n) ')
 
 willGraph = False
 if willGraphRaw.startswith('y'):
-    willGraph = True
+	willGraph = True
 endif
 
 if not baseUriRaw.endswith('/'):
@@ -33,7 +33,7 @@ endif
 
 defaultMeta = None
 if defaultFormulaRaw is not '':
-	defaultMeta = {'formula': defaultFormulaRaw}
+	defaultMeta = {'formula': defaultFormulaRaw.strip()}
 endif
 
 meta = {}
@@ -122,7 +122,11 @@ else:
 	endfor
 
 	directory.close()
+endtry
 
+print('Read in', len(outputData), 'files.')
+
+try:
     if willGraph and outputData[0] is not None:
         print('graphing', outputData[0].filename + '_abs_corr_' + version)
         newplot(outputData[0].energy, outputData[0].norm_corr, label=outputData[0].filename + '_abs_corr_1.0.0',
@@ -131,11 +135,55 @@ else:
                 title='normalized abscorr $ \mu(E) $',
                 show_legend=True,
                 marker=None)
+
+        for i in range(0, len(outputData)):
+            data = outputData[i]
+
+            data.filename = data.filename + '_abs_corr_' + version
+
+            if data.norm_corr is not None:
+                if i != 0:
+                    print('graphing', data.filename)
+                    plot(data.energy, data.norm_corr, label=data.filename, marker=None)
+                endif
+            else:
+                print(data.filename, 'has no norm_corr to graph')
+            endif
+        endfor
     endif
+except Exception:
+    willGraph = False
+    print('Graphing failed')
+endtry
 
-	for i in range(0, len(outputData)):
-	    data = outputData[i]
+print('\nCalculating relative positions and energies...\n')
 
+print('file name'.ljust(25), '   ',
+      'far pos index'.ljust(13), '   ',
+      'far pos diff'.ljust(12), '   ',
+      'far pos norm_corr'.ljust(20), '   ',
+      'far pos energy'.ljust(15), '  ',
+      'close index'.ljust(11), '   ',
+      'close diff'.ljust(10), '   ',
+      'shoulder Angle'.ljust(14)
+      )
+
+print(''.ljust(25), '   ',
+      'far neg index'.ljust(13), '   ',
+      'far neg diff'.ljust(12), '   ',
+      'far neg norm_corr'.ljust(20), '   ',
+      'far neg energy'.ljust(15), '  ',
+      ''.ljust(11), '   ',
+      ''.ljust(10), '   ',
+      'far pos-neg diff'.ljust(14)
+      )
+
+print('\n')
+
+for i in range(0, len(outputData)):
+    data = outputData[i]
+
+    if data.norm_corr is not None:
         startIndexDiff = 0
         endIndexDiff = 0
         startIndex = 0
@@ -155,115 +203,129 @@ else:
             endif
         endfor
 
-	    startValue = data.norm_corr[startIndex]
-	    endValue = data.norm_corr[endIndex]
+        startValue = data.norm_corr[startIndex]
+        endValue = data.norm_corr[endIndex]
 
-	    linearLine = []
-	    lastValue = startValue
-	    for j in range(0, endIndex - startIndex):
-	        linearLine.append(lastValue)
-    	    lastValue += (endValue - startValue)/(endIndex - startIndex)
-	    endfor
+        linearLine = []
+        lastValue = startValue
+        for j in range(0, endIndex - startIndex):
+            linearLine.append(lastValue)
+            lastValue += (endValue - startValue)/(endIndex - startIndex)
+        endfor
 
 
-	    linearLine.append(endValue)
+        linearLine.append(endValue)
 
-        farthestIndex = 0
-        farthestDiff = 0
+        farthestPositiveIndex = 0
+        farthestPositiveDiff = 0
         for j in range(0, len(linearLine)):
             diff = data.norm_corr[startIndex + j] - linearLine[j]
 
-            if diff > 0 and diff > farthestDiff:
-                farthestDiff = diff
-                farthestIndex = j
+            if diff > 0 and diff > farthestPositiveDiff:
+                farthestPositiveDiff = diff
+                farthestPositiveIndex = j
             endif
-	    endfor
+        endfor
 
-	    closestIndex = 0
-	    closestDiff = 9999
-	    for j in range(farthestIndex, len(linearLine)):
-	        diff = data.norm_corr[startIndex + j] - linearLine[j]
+        closestIndex = 0
+        closestDiff = 9999
+        for j in range(farthestPositiveIndex, len(linearLine)):
+            diff = data.norm_corr[startIndex + j] - linearLine[j]
 
-	        if diff < closestDiff:
-	            closestDiff = diff
-	            closestIndex = j
-	        else:
-	            pass
-	        endif
-	    endfor
+            if diff < closestDiff:
+                closestDiff = diff
+                closestIndex = j
+            else:
+                pass
+            endif
+        endfor
 
-	    avgTangentSlope = ((data.norm_corr[farthestIndex - 1] - data.norm_corr[farthestIndex]) + (data.norm_corr[farthestIndex] - data.norm_corr[farthestIndex + 1]))/2
-"""        tangentIntersectIndex = 0
-        tangentIntersectDiff = 9999
+        farthestNegativeIndex = 0
+        farthestNegativeDiff = 0
+        for j in range(closestIndex, len(linearLine)):
+            diff = data.norm_corr[startIndex + j] - linearLine[j]
 
-	    for j in range(0, 1000):
-	        diff = ((avgTangentSlope*j)+data.norm_corr[farthestIndex]) - data.norm_corr[closestIndex]
+            if diff < 0 and diff < farthestNegativeDiff:
+                farthestNegativeDiff = diff
+                farthestNegativeIndex = j
+            endif
+        endfor
 
-	        if diff < tangentIntersectDiff:
-	            tangentIntersectDiff = diff
-	            tangentIntersectIndex = j
-	        endif
-	    endfor
-"""
+        avgTangentSlope = ((data.norm_corr[farthestPositiveIndex - 1] - data.norm_corr[farthestPositiveIndex]) + (data.norm_corr[farthestPositiveIndex] - data.norm_corr[farthestPositiveIndex + 1]))/2
+        shoulderAngle = 180 - abs(math.degrees(math.atan(avgTangentSlope)) - math.degrees(math.atan(0)))
 
-        angle = 180 - abs(math.degrees(math.atan(avgTangentSlope)) - math.degrees(math.atan(0)))
+        print(data.filename.ljust(25)[:25], '   ',
+              str(farthestPositiveIndex).ljust(13), '   ',
+              str(farthestPositiveDiff).ljust(20)[:12], '   ',
+              str(data.norm_corr[farthestPositiveIndex + startIndex]).ljust(20)[:20], '   ',
+              str(data.energy[farthestPositiveIndex + startIndex]).ljust(20)[:15], '  ',
+              str(closestIndex).ljust(11), '   ',
+              str(closestDiff).ljust(20)[:10], '   ',
+              str(shoulderAngle).ljust(20)[:9].ljust(14)
+              )
 
+        print(''.ljust(25), '   ',
+              str(farthestNegativeIndex).ljust(13), '  ',
+              str(farthestNegativeDiff).ljust(20)[:12], '    ',
+              str(data.norm_corr[farthestNegativeIndex + startIndex]).ljust(20)[:20], '   ',
+              str(data.energy[farthestNegativeIndex + startIndex]).ljust(20)[:15], '  ',
+              ''.ljust(11), '   ',
+              ''.ljust(20)[:10], '   ',
+              str(abs(farthestPositiveDiff - farthestNegativeDiff)).ljust(20)[:9].ljust(14)
+              )
 
-    	print(data.filename, '   ', farthestIndex, '   ', data.norm_corr[farthestIndex + startIndex], '   ', data.energy[farthestIndex + startIndex], '   ', farthestDiff, '   ', closestDiff, '   ', closestIndex, '   ', angle)
+        print('')
 
         if willGraph:
-            plot_marker(data.energy[farthestIndex + startIndex], data.norm_corr[farthestIndex + startIndex], marker='o')
-            plot(data.energy[startIndex:endIndex+1], linearLine, marker=None, style='solid')
+            plot_marker(data.energy[farthestPositiveIndex + startIndex], data.norm_corr[farthestPositiveIndex + startIndex], marker='o')
+            plot_marker(data.energy[farthestNegativeIndex + startIndex], data.norm_corr[farthestNegativeIndex + startIndex], marker='x')
+            plot(data.energy[startIndex:endIndex+1], linearLine, marker=None, style='solid', label='Linear ' + data.filename)
         endif
-	endfor
+    else:
+        print(data.filename, ' has no norm_corr. Potential errors occurred\n')
+    endif
+endfor
 
+if outputName is not '':
+    try:
+        os.remove(baseUri + outputName + '_abs_corr_' + version + '.prj')
+    except Exception:
+        pass
+    endtry
 
+    outputProject = create_athena(baseUri + outputName + '_abs_corr_' + version + '.prj')
+endif
 
+for i in range(0, len(outputData)):
+    data = outputData[i]
 
+    if data.norm_corr is not None:
+        data.mufluor = data.norm_corr
+        delattr(data, 'mu')
 
-	if outputName is not '':
-		try:
-			os.remove(baseUri + outputName + '_abs_corr_' + version + '.prj')
-		except Exception:
-			pass
-		endtry
+        if outputName is '':
+            print('writing out data')
+            try:
+                os.remove(baseUri + data.filename + '.prj')
+            except Exception:
+                pass
+            endtry
 
-		outputProject = create_athena(baseUri + outputName + '_abs_corr_' + version + '.prj')
-	endif
+            outputProject = create_athena(baseUri + data.filename + '.prj')
+            outputProject.add_group(data)
+            outputProject.save()
+        else:
+            outputProject.add_group(data)
+        endif
+    else:
+        print(data.filename, 'has no norm_corr to write out')
+    endif
+endfor
 
-	for i in range(0, len(outputData)):
-		data = outputData[i]
-
-		data.filename = data.filename + '_abs_corr_' + version
-		data.mufluor = data.norm_corr
-		delattr(data, 'mu')
-
-		if willGraph and i != 0:
-			print('graphing', data.filename)
-			plot(data.energy, data.norm_corr, label=data.filename, marker=None)
-		endif
-
-		if outputName is '':
-			print('writing out data')
-			try:
-				os.remove(baseUri + data.filename + '.prj')
-			except Exception:
-				pass
-			endtry
-
-			outputProject = create_athena(baseUri + data.filename + '.prj')
-			outputProject.add_group(data)
-			outputProject.save()
-		else:
-			outputProject.add_group(data)
-		endif
-	endfor
-
-	if outputName is not '':
-		print('writing out data')
-		outputProject.save()
-	endif
-endtry
+if outputName is not '':
+    print('writing out data')
+    outputProject.save()
+endif
 
 print('cleaning up...')
 
@@ -299,20 +361,20 @@ print('\n\nOutput Finished.')
 
 """
 newplot(file.energy, file.norm, label='normalized $ \mu(E) $',
-        xlabel='Energy (eV)',
-        ylabel='normalized $ \mu(E) $',
-        title='post-normalization ',
-        show_legend=True)
+		xlabel='Energy (eV)',
+		ylabel='normalized $ \mu(E) $',
+		title='post-normalization ',
+		show_legend=True)
 
 newplot(file.energy, file.mu, label=' $ \mu(E) $ ',
-        xlabel='Energy (eV)',
-        ylabel='fe_ka/i0',
-        title='pre-normalization ',
-        show_legend=True)
+		xlabel='Energy (eV)',
+		ylabel='fe_ka/i0',
+		title='pre-normalization ',
+		show_legend=True)
 
 plot(file.energy, file.pre_edge, label='pre-edge line',
-     color='black', style='dashed' )
+	 color='black', style='dashed' )
 
 plot(file.energy, file.post_edge, label='normalization line',
-     color='black', style='dotted' )
+	 color='black', style='dotted' )
 """
