@@ -13,34 +13,25 @@ version = '1.0.0'
 edgeStartEnergy = 7118.5
 edgeEndEnergy = 7123.5
 
-baseUriRaw = input('Enter the directory Location: ')
+baseUriRaw = input('Enter the directory Location: ').replace('\\', '/')
 outputNameRaw = input('Enter output project name(optional, enter for none): ')
-metaFileNameRaw = input('Enter metadata file name(default: \'meta.csv\'): ')
+metaName = (input('Enter metadata file name(default: \'meta.csv\'): ') or 'meta.csv')
 defaultFormulaRaw = input('Enter a default formula(default: skips files without formula): ')
-willGraphRaw = input('Do you want to graph these?(y/n default: n) ')
-
-willGraph = False
-if willGraphRaw.startswith('y'):
-    willGraph = True
+willGraph = input('Do you want to graph these?(y/n default: n) ').lower().startswith("y")
 
 if not baseUriRaw.endswith('/'):
     baseUriRaw += '/'
-baseUri = baseUriRaw.replace('\\', '/')
+endif
 
 outputName = ''
 if outputNameRaw is not '' and not outputNameRaw.endswith('.prj'):
     outputName = outputNameRaw + '.prj'
-
-metaName = 'meta.csv'
-if metaFileNameRaw is not '':
-    metaName = metaFileNameRaw
+endif
 
 defaultMeta = None
 if defaultFormulaRaw is not '':
     defaultMeta = {'formula': defaultFormulaRaw.strip()}
-
-meta = {}
-outputData = []
+endif
 
 # defaultMeta = {'formula': 'Si1.849Ti0.044Al0.256Cr0Fe0.334Mn0.008Mg0.588Ca0.835Na0.128O6'}
 # baseUri = 'C:/Users/EPMA_Castaing/work/avishek/testdata/test/'
@@ -317,31 +308,6 @@ if len(outputData) > 0:
 
 else:
     print('Unable to read in any data')
-
-print('cleaning up...')
-
-baseUriRaw = None
-outputNameRaw = None
-metaFileNameRaw = None
-defaultFormulaRaw = None
-fh = None
-metaLines = None
-names = None
-info = None
-outputData = None
-thisMeta = None
-file = None
-formula = None
-outputProject = None
-data = None
-baseUri = None
-outputName = None
-metaName = None
-meta = None
-defaultMeta = None
-version = None
-
-directory = None
 
 print('\n\nOutput Finished.')
 
