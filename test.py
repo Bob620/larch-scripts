@@ -2,36 +2,32 @@ import os
 import math
 
 import numpy as np
-import pylab
+import matplotlib.pyplot as plt
 from larch import Interpreter, Group
 from larch_plugins.xafs import pre_edge, pre_edge_baseline, fluo_corr
 from larch_plugins.io import read_ascii
-from larch_plugins.plotter import newplot, plot, plot_marker
 
 larchInstance = Interpreter()
 version = '1.0.0'
 edgeStartEnergy = 7118.5
 edgeEndEnergy = 7123.5
 
-baseUriRaw = input('Enter the directory Location: ').replace('\\', '/')
+baseUri = input('Enter the directory Location: ').replace('\\', '/')
 outputNameRaw = input('Enter output project name(optional, enter for none): ')
 metaName = (input('Enter metadata file name(default: \'meta.csv\'): ') or 'meta.csv')
 defaultFormulaRaw = input('Enter a default formula(default: skips files without formula): ')
 willGraph = input('Do you want to graph these?(y/n default: n) ').lower().startswith("y")
 
-if not baseUriRaw.endswith('/'):
-    baseUriRaw += '/'
-endif
+if not baseUri.endswith('/'):
+    baseUri += '/'
 
 outputName = ''
 if outputNameRaw is not '' and not outputNameRaw.endswith('.prj'):
     outputName = outputNameRaw + '.prj'
-endif
 
 defaultMeta = None
 if defaultFormulaRaw is not '':
     defaultMeta = {'formula': defaultFormulaRaw.strip()}
-endif
 
 # defaultMeta = {'formula': 'Si1.849Ti0.044Al0.256Cr0Fe0.334Mn0.008Mg0.588Ca0.835Na0.128O6'}
 # baseUri = 'C:/Users/EPMA_Castaing/work/avishek/testdata/test/'
@@ -43,6 +39,8 @@ endif
 sampleNameHeader = 'sample number'
 sampleFormulaHeader = 'formula'
 directory = None
+meta = {}
+outputData = []
 
 try:
     directory = os.scandir(baseUri)
@@ -71,7 +69,8 @@ else:
         else:
             if len(info) >= len(metaColumnNames):
                 meta[info[metaColumnNames.index(sampleNameHeader)].strip()] = {
-                    'formula': info[metaColumnNames.index(sampleFormulaHeader)].strip()}
+                    'formula': info[metaColumnNames.index(sampleFormulaHeader)].strip()
+                }
 
 if directory is not None:
     for entry in directory:
@@ -107,13 +106,15 @@ if directory is not None:
                         file.mu = (file.fe_ka1 + file.fe_ka2 + file.fe_ka3 + file.fe_ka4) / file.i0
 
                         print('Calculating the Pre-Edge Subtraction/Normalization...')
-                        pre_edge(file, group=file, pre1=-67.40, pre2=-30.00, norm1=77.96, norm2=250.60)
+                        pre_edge(file, group=file, pre1=-67.40, pre2=-30.00, norm1=77.96, norm2=250.60,
+                                 _larch=larchInstance)
 
                         print('Calculating the Over Absorption...')
-                        fluo_corr(energy=file.energy, mu=file.mu, group=file, elem='Fe', formula=formula)
+                        fluo_corr(energy=file.energy, mu=file.mu, group=file, elem='Fe', formula=formula,
+                                  _larch=larchInstance)
 
-                        print('Calculating the Baseline Subtraction...')
-                        pre_edge_baseline(energy=file, norm=file.norm_corr, group=file, emin=7105)
+                        #                        print('Calculating the Baseline Subtraction...')
+                        #                        pre_edge_baseline(energy=file, norm=file.norm_corr, group=file, emin=7105, _larch=larchInstance)
 
                         outputData.append(file)
 
@@ -121,34 +122,29 @@ if directory is not None:
 
 print('Read in', len(outputData), 'files.')
 
+mainFig, mainPlot = plt.subplots()
+
 if len(outputData) > 0:
-    for data in outputData:
-        print('Preparing', data.filename, '...')
-        data.filename = data.filename + '_abs_corr_' + version
-
-    print(outputData[0])
-
     try:
         if willGraph:
             graphMade = False
             for data in outputData:
+                print('Preparing', data.filename, '...')
+                data.filename = data.filename + '_abs_corr_' + version
+
                 print('Graphing', data.filename, '...')
-                if graphMade:
-                    plot(data.energy, data.norm_corr, label=data.filename, marker=None)
-                else:
-                    newplot(data.energy, data.norm_corr, label=data.filename,
-                            xlabel='Energy (eV)',
-                            ylabel='normalized $ \mu(E) $',
-                            title='normalized abscorr $ \mu(E) $',
-                            show_legend=True,
-                            marker=None
-                            )
+                mainPlot.plot(data.energy, data.norm_corr, label=data.filename, marker=None)
+
+                if not graphMade:
+                    mainPlot.set(xlabel='Energy (eV)',
+                                 ylabel='normalized $ \mu(E) $',
+                                 title='normalized abscorr $ \mu(E) $'
+                                 )
                     graphMade = True
 
                 print('Graphed', data.filename)
-
-
-    except Exception:
+    except Exception as err:
+        print(err)
         willGraph = False
         print('Graphing failed for unknown reason')
 
@@ -235,7 +231,7 @@ if len(outputData) > 0:
                     farthestNegativeIndex = j
 
             avgTangentSlope = ((data.norm_corr[farthestPositiveIndex - 1] - data.norm_corr[farthestPositiveIndex]) + (
-                        data.norm_corr[farthestPositiveIndex] - data.norm_corr[farthestPositiveIndex + 1])) / 2
+                    data.norm_corr[farthestPositiveIndex] - data.norm_corr[farthestPositiveIndex + 1])) / 2
             shoulderAngle = 180 - abs(math.degrees(math.atan(avgTangentSlope)) - math.degrees(math.atan(0)))
 
             print(data.filename.ljust(25)[:25], '   ',
@@ -261,18 +257,21 @@ if len(outputData) > 0:
             print('')
 
             if willGraph:
-                plot_marker(data.energy[farthestPositiveIndex + startIndex],
-                            data.norm_corr[farthestPositiveIndex + startIndex], marker='o')
-                plot_marker(data.energy[farthestNegativeIndex + startIndex],
-                            data.norm_corr[farthestNegativeIndex + startIndex], marker='x')
-                plot(data.energy[startIndex:endIndex + 1], linearLine, marker=None, style='solid',
-                     label='Linear ' + data.filename)
+                mainPlot.plot(data.energy[farthestPositiveIndex+startIndex],
+                              data.norm_corr[farthestPositiveIndex+startIndex], marker='o', markersize=2)
+                mainPlot.plot(data.energy[farthestNegativeIndex+startIndex],
+                              data.norm_corr[farthestNegativeIndex+startIndex], marker='x', markersize=2)
+                mainPlot.plot(data.energy[startIndex:endIndex + 1], linearLine, linestyle='--',
+                              label='Linear ' + data.filename)
 
         else:
             print(data.filename, ' has no norm_corr. Potential errors occurred\n')
 
     outputProject = None
 
+    if willGraph:
+        plt.show()
+"""
     if outputName is not '':
         try:
             os.remove(baseUri + outputName + '_abs_corr_' + version + '.prj')
@@ -308,7 +307,7 @@ if len(outputData) > 0:
 
 else:
     print('Unable to read in any data')
-
+"""
 print('\n\nOutput Finished.')
 
 # plot_prepeaks_baseline(dgroup=file)
