@@ -70,9 +70,9 @@ else:
 		else:
 			if len(info) >= len(metaColumnNames):
 				meta[info[metaColumnNames.index(sampleNameHeader)].strip()] = {
-					'formula': info[metaColumnNames.index(sampleFormulaHeader)].strip().replace('\t', '').replace('"',
-																												  '').replace(
-						'\'', '')
+					'formula': info[metaColumnNames
+					.index(sampleFormulaHeader)]
+					.strip().replace('\t', '').replace('"', '').replace('\'', '')
 				}
 
 if directory is not None:
@@ -116,8 +116,8 @@ if directory is not None:
 						fluo_corr(energy=file.energy, mu=file.mu, group=file, elem='Fe', formula=formula,
 								  _larch=larchInstance)
 
-						#                        print('Calculating the Baseline Subtraction...')
-						#                        pre_edge_baseline(energy=file,norm=file.norm_corr, group=file, emin=7105, _larch=larchInstance)
+						#print('Calculating the Baseline Subtraction...')
+						#pre_edge_baseline(energy=file,norm=file.norm_corr, group=file, emin=7105, _larch=larchInstance)
 
 						outputData.append(file)
 
@@ -272,8 +272,23 @@ if len(outputData) > 0:
 
 	outputProject = None
 
+def onpick(event):
+    # on the pick event, find the orig line corresponding to the
+    # legend proxy line, and toggle the visibility
+    print(event.artist)
+
+#    vis = not origline.get_visible()
+#    origline.set_visible(vis)
+
+#    if vis:
+#        legline.set_alpha(1.0)
+#    else:
+#        legline.set_alpha(0.2)
+#    mainFig.canvas.draw()
+
 if willGraph:
 	print('Displaying graph...')
+	mainFig.canvas.mpl_connect('pick_event', onpick)
 	plt.ioff()
 	plt.grid()
 	plt.legend()

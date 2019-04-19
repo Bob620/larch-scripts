@@ -133,8 +133,8 @@ for file in files:
         print('Calculating the Over Absorption...')
         fluo_corr(energy=file.energy, mu=file.mu, group=file, elem='Fe', formula=formula)
 
-        print('Calculating the Baseline Subtraction...')
-        pre_edge_baseline(energy=file, norm=file.norm_corr, group=file, emin=7105)
+#        print('Calculating the Baseline Subtraction...')
+#        pre_edge_baseline(energy=file, norm=file.norm_corr, group=file, emin=7105)
 
         outputData.append(file)
     endif
