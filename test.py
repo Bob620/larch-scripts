@@ -8,6 +8,8 @@ from larch import Interpreter, Group
 from larch_plugins.xafs import pre_edge, pre_edge_baseline, fluo_corr
 from larch_plugins.io import read_ascii
 
+from legend import interactive_legend
+
 larchInstance = Interpreter()
 version = '1.0.0'
 edgeStartEnergy = 7118.5
@@ -71,8 +73,8 @@ else:
 			if len(info) >= len(metaColumnNames):
 				meta[info[metaColumnNames.index(sampleNameHeader)].strip()] = {
 					'formula': info[metaColumnNames
-					.index(sampleFormulaHeader)]
-					.strip().replace('\t', '').replace('"', '').replace('\'', '')
+						.index(sampleFormulaHeader)]
+						.strip().replace('\t', '').replace('"', '').replace('\'', '')
 				}
 
 if directory is not None:
@@ -116,8 +118,8 @@ if directory is not None:
 						fluo_corr(energy=file.energy, mu=file.mu, group=file, elem='Fe', formula=formula,
 								  _larch=larchInstance)
 
-						#print('Calculating the Baseline Subtraction...')
-						#pre_edge_baseline(energy=file,norm=file.norm_corr, group=file, emin=7105, _larch=larchInstance)
+						# print('Calculating the Baseline Subtraction...')
+						# pre_edge_baseline(energy=file,norm=file.norm_corr, group=file, emin=7105, _larch=larchInstance)
 
 						outputData.append(file)
 
@@ -125,7 +127,11 @@ if directory is not None:
 
 print('Read in', len(outputData), 'files.')
 
-mainFig, mainPlot = plt.subplots()
+mainFig, mainPlot = None, None
+lines = {}
+
+if willGraph:
+	mainFig, mainPlot = plt.subplots()
 
 if len(outputData) > 0:
 	try:
@@ -143,7 +149,8 @@ if len(outputData) > 0:
 					graphMade = True
 
 				print('Graphing', data.filename, '...')
-				mainPlot.plot(data.energy, data.norm_corr, label=data.filename, marker=None)
+				line = mainPlot.plot(data.energy, data.norm_corr, label=data.filename, marker=None)[0]
+				lines[data.filename] = {'name': data.filename, 'line': line, 'points': [], 'linear': None}
 
 				print('Graphed', data.filename)
 	except Exception as err:
@@ -260,39 +267,44 @@ if len(outputData) > 0:
 			print('')
 
 			if willGraph:
-				mainPlot.plot(data.energy[farthestPositiveIndex + startIndex],
-							  data.norm_corr[farthestPositiveIndex + startIndex], marker='o', markersize=5)
-				mainPlot.plot(data.energy[farthestNegativeIndex + startIndex],
-							  data.norm_corr[farthestNegativeIndex + startIndex], marker='x', markersize=5)
-				mainPlot.plot(data.energy[startIndex:endIndex + 1], linearLine, linestyle='--',
-							  label='Linear ' + data.filename)
-
+				lineSet = lines[data.filename]
+				lineSet['points'].append(mainPlot.plot(data.energy[farthestPositiveIndex + startIndex],
+													   data.norm_corr[farthestPositiveIndex + startIndex],
+													   marker='o',
+													   markersize=5
+													   )
+										 )
+				lineSet['points'].append(mainPlot.plot(data.energy[farthestNegativeIndex + startIndex],
+													   data.norm_corr[farthestNegativeIndex + startIndex],
+													   marker='x',
+													   markersize=5
+													   )
+										 )
+				lineSet['linear'] = mainPlot.plot(data.energy[startIndex:endIndex + 1],
+												  linearLine,
+												  linestyle='--',
+												  label='Linear ' + data.filename
+												  )
 		else:
 			print(data.filename, ' has no norm_corr. Potential errors occurred\n')
 
 	outputProject = None
 
-def onpick(event):
-    # on the pick event, find the orig line corresponding to the
-    # legend proxy line, and toggle the visibility
-    print(event.artist)
-
-#    vis = not origline.get_visible()
-#    origline.set_visible(vis)
-
-#    if vis:
-#        legline.set_alpha(1.0)
-#    else:
-#        legline.set_alpha(0.2)
-#    mainFig.canvas.draw()
-
 if willGraph:
 	print('Displaying graph...')
-	mainFig.canvas.mpl_connect('pick_event', onpick)
 	plt.ioff()
 	plt.grid()
-	plt.legend()
-	plt.show(block=True)
+	plt.legend(loc='upper left', bbox_to_anchor=(1.05, 1),
+			   ncol=1, borderaxespad=0)
+	mainFig.subplots_adjust(right=0.55)
+	legend = interactive_legend(mainPlot)
+	for name in lines:
+		lineSet = lines[name]
+		elementSet = legend.labelReference['Linear ' + name]
+		elementSet.toggleable.extend(lineSet['points'])
+		elementSet.toggleable.append(lineSet['linear'])
+
+	legend.show()
 	print('Graph closed.')
 
 """
