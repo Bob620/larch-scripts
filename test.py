@@ -268,13 +268,13 @@ if len(outputData) > 0:
 
 			if willGraph:
 				lineSet = lines[data.filename]
-				lineSet['points'].append(mainPlot.plot(data.energy[farthestPositiveIndex + startIndex],
+				lineSet['points'].extend(mainPlot.plot(data.energy[farthestPositiveIndex + startIndex],
 													   data.norm_corr[farthestPositiveIndex + startIndex],
 													   marker='o',
 													   markersize=5
 													   )
 										 )
-				lineSet['points'].append(mainPlot.plot(data.energy[farthestNegativeIndex + startIndex],
+				lineSet['points'].extend(mainPlot.plot(data.energy[farthestNegativeIndex + startIndex],
 													   data.norm_corr[farthestNegativeIndex + startIndex],
 													   marker='x',
 													   markersize=5
@@ -295,14 +295,15 @@ if willGraph:
 	plt.ioff()
 	plt.grid()
 	plt.legend(loc='upper left', bbox_to_anchor=(1.05, 1),
-			   ncol=1, borderaxespad=0)
+			   ncol=2, borderaxespad=0)
 	mainFig.subplots_adjust(right=0.55)
 	legend = interactive_legend(mainPlot)
 	for name in lines:
 		lineSet = lines[name]
 		elementSet = legend.labelReference['Linear ' + name]
+		elementSet.clickable[1].set_text('Edge Data')
 		elementSet.toggleable.extend(lineSet['points'])
-		elementSet.toggleable.append(lineSet['linear'])
+		elementSet.toggleable.extend(lineSet['linear'])
 
 	legend.show()
 	print('Graph closed.')
