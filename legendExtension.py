@@ -10,7 +10,7 @@ class LineSet(object):
 
         line.get_figure().legend()
 
-        self.lineSet = ElementSet([line, ])
+        # self.lineSet = ElementSet([line, ])
 
 
 class PreEdgeSet(ElementSet):
