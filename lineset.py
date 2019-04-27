@@ -44,3 +44,31 @@ class LineSet(object):
                                               label=self.data.filename + '_abs_corr',
                                               marker=None
                                               )
+
+    def plot_edge(self):
+        if self.plot and self.store[constants.EdgeData.storeName]:
+            store = self.store[constants.EdgeData.storeName]
+
+            self.plot.plot(self.data.energy[store.farthestPositiveIndex],
+                           self.data.norm_corr[store.farthestPositiveIndex],
+                           marker='o',
+                           markersize=5
+                           )
+
+            self.plot.plot(self.data.energy[store.farthestNegativeIndex],
+                           self.data.norm_corr[store.farthestNegativeIndex],
+                           marker='x',
+                           markersize=5
+                           )
+
+            self.plot.plot(self.data.energy[store.closestIndex],
+                           self.data.norm_corr[store.closestIndex],
+                           marker='+',
+                           markersize=5
+                           )
+
+            self.plot.plot(self.data.energy[store.startIndex:store.endIndex + 1],
+                           store.linearLine,
+                           linestyle='--',
+                           label='Linear'
+                           )

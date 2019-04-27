@@ -176,6 +176,9 @@ for name in lines:
     data = lineSet.get_data()
     edgeData = lineSet.get_store(constants.EdgeData.storeName)
 
+    if willGraph:
+        lineSet.plot_edge()
+
     print(lineSet.get_name().ljust(25)[:25], '   ',
           str(edgeData.farthestPositiveIndex).ljust(13), '   ',
           str(edgeData.farthestPositiveDiff).ljust(20)[:12], '   ',
@@ -198,27 +201,6 @@ for name in lines:
 
     print('')
 
-
-if False:
-    lineSet = lines[data.filename]
-    lineSet['points'].extend(mainPlot.plot(data.energy[farthestPositiveIndex + startIndex],
-                                           data.norm_corr[farthestPositiveIndex + startIndex],
-                                           marker='o',
-                                           markersize=5
-                                           )
-                             )
-    lineSet['points'].extend(mainPlot.plot(data.energy[farthestNegativeIndex + startIndex],
-                                           data.norm_corr[farthestNegativeIndex + startIndex],
-                                           marker='x',
-                                           markersize=5
-                                           )
-                             )
-    lineSet['linear'] = mainPlot.plot(data.energy[startIndex:endIndex + 1],
-                                      linearLine,
-                                      linestyle='--',
-                                      label='Linear ' + data.filename
-                                      )
-
 if willGraph:
     print('Displaying graph...')
     plt.ioff()
@@ -227,13 +209,13 @@ if willGraph:
                ncol=2, borderaxespad=0
                )
     mainFig.subplots_adjust(right=0.55)
-    legend = interactive_legend(mainPlot, lineSearchSet)
-    for name in lines:
-        lineSet = lines[name]
-        elementSet = legend.labelReference['Linear ' + name]
-        elementSet.clickable[1].set_text('Edge Data')
-        elementSet.add_toggleable(lineSet['points'])
-        elementSet.add_toggleable(lineSet['linear'])
+    legend = interactive_legend(mainPlot)
+#    for name in lines:
+#        lineSet = lines[name]
+#        elementSet = legend.labelReference['Linear ' + name]
+#        elementSet.clickable[1].set_text('Edge Data')
+#        elementSet.add_toggleable(lineSet['points'])
+#        elementSet.add_toggleable(lineSet['linear'])
 
     legend.show()
     print('Graph closed.')
