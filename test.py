@@ -133,6 +133,10 @@ if willGraph:
                  ylabel='normalized $ \mu(E) $',
                  title='normalized abscorr $ \mu(E) $'
                  )
+    plt.legend(loc='upper left', bbox_to_anchor=(1.05, 1),
+               ncol=2, borderaxespad=0
+               )
+    mainFig.subplots_adjust(right=0.55)
 
 
 for name in lines:
@@ -205,10 +209,6 @@ if willGraph:
     print('Displaying graph...')
     plt.ioff()
     plt.grid()
-    plt.legend(loc='upper left', bbox_to_anchor=(1.05, 1),
-               ncol=2, borderaxespad=0
-               )
-    mainFig.subplots_adjust(right=0.55)
     legend = interactive_legend(mainPlot)
 #    for name in lines:
 #        lineSet = lines[name]

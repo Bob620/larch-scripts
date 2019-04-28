@@ -60,11 +60,11 @@ class InteractiveLegend(object):
             self.elementSets = {}
             self.labelReference = {}
 
-            self._build_lookups()
+            # self._build_lookups()
         else:
             self.elementSets = defaultSetReference
 
-        self._setup_connections()
+        # self._setup_connections()
         self.update()
 
     def _setup_connections(self):
@@ -92,11 +92,14 @@ class InteractiveLegend(object):
                 self.elementSets[text] = elementSet
 
     def on_pick(self, event):
-        try:
-            self.elementSets[event.artist.get_gid].toggle()
-            self.update()
-        except Exception:
-            pass
+        test = event.artist.get_gid()
+
+        (gid, toggleFunc) = test
+
+        toggleFunc()
+
+        # self.elementSets[event.artist.get_gid].toggle()
+        self.update()
 
     def update(self):
         self.fig.canvas.draw()
