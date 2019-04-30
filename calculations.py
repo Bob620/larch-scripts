@@ -2,6 +2,59 @@ import math
 
 import constants
 
+from scipy import signal
+
+
+class EdgeData:
+    def __init__(self):
+        self.startIndexDiff = 0  # diff from wanted value vs actual data point
+        self.startIndex = 0  # normalized index of start of edge
+        self.startValue = 0  # value at the start index
+
+        self.endIndexDiff = 0  # diff from wanted value vs actual data point
+        self.endIndex = 0  # normalized index of end of edge
+        self.endValue = 0  # value at the end index
+
+        self.linearLine = []  # array of linear line to compare against actual edge
+        self.avgTangentSlope = 0  # average slope at farthest positive index
+        self.shoulderAngle = 0  # avg slope angle with horizontal
+
+        self.farthestPositiveIndex = 0  # (normalized after use) farthest(+) point away from expected linear
+        self.farthestPositiveDiff = 0  # difference from expected linear value
+
+        self.farthestNegativeIndex = 0  # (normalized after use) farthest(-) point away from expected linear
+        self.farthestNegativeDiff = 0  # difference from expected linear value
+
+        self.closestIndex = 0  # (normalized after use) closest index to the linear (expected between + and -)
+        self.closestDiff = math.inf  # We want the smallest possible diff
+
+
+class MainPeakData:
+    def __init__(self):
+        self.smoothedPeak = []
+
+        self.startIndex = 0
+        self.startIndexDiff = 0
+        self.startValue = 0
+
+        self.endIndex = 0
+        self.endIndexDiff = 0
+        self.endValue = 0
+
+        self.derivative = []
+
+        self.initialPeakIndex = 0
+        self.initialPeakSmoothed = []
+
+        self.lowIndex = 0
+        self.lowSmoothed = 0
+
+        self.middlePeakIndex = 0
+        self.middlePeakSmoothed = []
+
+        self.lastPeakIndex = 0
+        self.lastPeakSmoothed = []
+
 
 def pre_edge(lineSet):
     return
@@ -86,28 +139,77 @@ def edge(lineSet):
 
 
 def main_peak(lineSet):
+    data = lineSet.get_data()
+
+    if data.norm_corr is None:
+        raise Exception('Calculate the abs_corr for ${0}'.format(lineSet.get_name()))
+
+    mainPeakData = MainPeakData()
+
+    smoothedPeak = mainPeakData.smoothedPeak = signal.savgol_filter(data.norm_corr, 7, 3)
+
+    # Calculate the start and end points that match the *wanted* start and end positions of the edge
+    for j in range(0, len(data.energy)):
+        startEnergyD = abs(data.energy[j] - constants.MainPeakData.startEnergy)
+        if startEnergyD < abs(data.energy[mainPeakData.startIndex] - constants.MainPeakData.startEnergy):
+            mainPeakData.startIndexDiff = abs(data.energy[mainPeakData.startIndex] - constants.EdgeData.startEnergy)
+            mainPeakData.startIndex = j
+
+        endEnergyD = abs(data.energy[j] - constants.MainPeakData.endEnergy)
+        if endEnergyD < abs(data.energy[mainPeakData.endIndex] - constants.MainPeakData.endEnergy):
+            mainPeakData.endIndexDiff = abs(data.energy[mainPeakData.startIndex] - constants.EdgeData.endEnergy)
+            mainPeakData.endIndex = j
+
+    derivative = []
+    currentIndex = mainPeakData.startIndex
+
+    for i in range(mainPeakData.startIndex + 1, mainPeakData.endIndex + 1):
+        derivative.append(data.norm_corr[i] - data.norm_corr[currentIndex])
+
+    mainPeakData.derivative = derivative
+
+    mainPeakData.startValue = data.norm_corr[mainPeakData.startIndex]
+    mainPeakData.endValue = data.norm_corr[mainPeakData.endIndex]
+
+    mainPeakData.initialPeakIndex = mainPeakData.startIndex
+    mainPeakData.initialPeakSmoothed = mainPeakData.startIndex
+
+    mainPeakData.middlePeakIndex = mainPeakData.startIndex
+    mainPeakData.middlePeakSmoothed = mainPeakData.startIndex
+
+    mainPeakData.lastPeakIndex = mainPeakData.startIndex
+    mainPeakData.lastPeakSmoothed = mainPeakData.startIndex
+
+    peakNumber = 0
+    decreased = 0
+    lowPoint = mainPeakData.startIndex
+    for i in range(mainPeakData.startIndex, mainPeakData.endIndex):
+        if decreased >= 10:
+            if data.norm_corr[lowPoint] > data.norm_corr[i]:
+                lowPoint = i
+            else:
+                peakNumber += 1
+                decreased = 0
+
+        if peakNumber == 0:
+            if data.norm_corr[mainPeakData.initialPeakIndex] < data.norm_corr[i]:
+                mainPeakData.initialPeakIndex = i
+            else:
+                decreased += 1
+
+        if peakNumber == 1:
+            if data.norm_corr[mainPeakData.middlePeakIndex] < data.norm_corr[i]:
+                mainPeakData.middlePeakIndex = i
+            else:
+                decreased += 1
+
+        if peakNumber == 2:
+            if data.norm_corr[mainPeakData.lastPeakIndex] < data.norm_corr[i]:
+                mainPeakData.lastPeakIndex = i
+            else:
+                decreased += 1
+
+    lineSet.set_store(constants.MainPeakData.storeName, mainPeakData)
+
     return
 
-
-class EdgeData:
-    def __init__(self):
-        self.startIndexDiff = 0  # diff from wanted value vs actual data point
-        self.startIndex = 0  # normalized index of start of edge
-        self.startValue = 0  # value at the start index
-
-        self.endIndexDiff = 0  # diff from wanted value vs actual data point
-        self.endIndex = 0  # normalized index of end of edge
-        self.endValue = 0  # value at the end index
-
-        self.linearLine = []  # array of linear line to compare against actual edge
-        self.avgTangentSlope = 0  # average slope at farthest positive index
-        self.shoulderAngle = 0  # avg slope angle with horizontal
-
-        self.farthestPositiveIndex = 0  # (normalized after use) farthest(+) point away from expected linear
-        self.farthestPositiveDiff = 0  # difference from expected linear value
-
-        self.farthestNegativeIndex = 0  # (normalized after use) farthest(-) point away from expected linear
-        self.farthestNegativeDiff = 0  # difference from expected linear value
-
-        self.closestIndex = 0  # (normalized after use) closest index to the linear (expected between + and -)
-        self.closestDiff = math.inf  # We want the smallest possible diff

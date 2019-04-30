@@ -72,3 +72,27 @@ class LineSet(object):
                            linestyle='--',
                            label='Linear'
                            )
+
+    def plot_main_peak(self):
+        if self.plot and self.store[constants.MainPeakData.storeName]:
+            store = self.store[constants.MainPeakData.storeName]
+
+            self.plot.plot(self.data.energy, store.smoothedPeak,
+                           linestyle=':',
+                           label='smoothed'
+                           )
+
+            self.plot.plot(self.data.energy[store.initialPeakIndex], self.data.norm_corr[store.initialPeakIndex],
+                           marker='o',
+                           markersize=5
+                           )
+
+            self.plot.plot(self.data.energy[store.middlePeakIndex], self.data.norm_corr[store.middlePeakIndex],
+                           marker='x',
+                           markersize=5
+                           )
+
+            self.plot.plot(self.data.energy[store.lastPeakIndex], self.data.norm_corr[store.lastPeakIndex],
+                           marker='+',
+                           markersize=5
+                           )

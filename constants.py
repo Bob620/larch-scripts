@@ -15,10 +15,17 @@ class EdgeData:
     endEnergy = 7123.5
 
 
+class MainPeakData:
+    storeName = 'mainPeakData'
+    startEnergy = 7123.5
+    endEnergy = 7135.0
+
+
 class Const:
     version = '1.0.0'
     Fe = Fe()
     EdgeData = EdgeData()
+    MainPeakData = MainPeakData()
 
 
 sys.modules[__name__] = Const()

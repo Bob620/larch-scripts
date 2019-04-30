@@ -172,12 +172,15 @@ for name in lines:
 
     # Stuff
     calculations.edge(lineSet)
+    calculations.main_peak(lineSet)
 
     data = lineSet.get_data()
     edgeData = lineSet.get_store(constants.EdgeData.storeName)
+    mainPeakData = lineSet.get_store(constants.MainPeakData.storeName)
 
     if willGraph:
         lineSet.plot_edge()
+        lineSet.plot_main_peak()
 
     print(lineSet.get_name().ljust(25)[:25], '   ',
           str(edgeData.farthestPositiveIndex).ljust(13), '   ',
