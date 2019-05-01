@@ -198,12 +198,22 @@ class LineSet(object):
                            markersize=5
                            )
 
-            self.plot.plot(self.data.energy[store.middlePeakIndex], store.smoothedPeak[store.middlePeakIndex],
+            self.plot.plot(self.data.energy[store.lowIndex], store.smoothedPeak[store.lowIndex],
                            marker='x',
                            markersize=5
                            )
 
-            self.plot.plot(self.data.energy[store.lastPeakIndex], store.smoothedPeak[store.lastPeakIndex],
+            self.plot.plot(self.data.energy[store.peakBound[0]], store.smoothedPeak[store.peakBound[0]],
                            marker='+',
+                           markersize=5
+                           )
+
+            self.plot.plot(self.data.energy[store.peakBound[1]], store.smoothedPeak[store.peakBound[1]],
+                           marker='+',
+                           markersize=5
+                           )
+
+            self.plot.plot(store.peakCenter, store.smoothedPeak[store.initialPeakIndex],
+                           marker='x',
                            markersize=5
                            )

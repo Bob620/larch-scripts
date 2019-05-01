@@ -47,6 +47,11 @@ class MainPeakData:
         self.initialPeakIndex = 0
         self.initialPeakSmoothed = []
 
+        self.peakBound = [0, 0]
+        self.peakCenter = 0
+        self.peakCenterDiff = 0
+        self.peakCenterOffset = 0
+
         self.lowIndex = 0
         self.lowSmoothed = 0
 
@@ -189,7 +194,7 @@ def main_peak(lineSet):
                      )
 
         testPlt.plot(range(mainPeakData.startIndex, mainPeakData.endIndex), smoothDerivative)
-        # testPlt.plot(range(mainPeakData.startIndex, mainPeakData.endIndex), derivative, label="test")
+        testPlt.plot(range(mainPeakData.startIndex, mainPeakData.endIndex), derivative, label="test")
         testPlt.plot(range(mainPeakData.startIndex, mainPeakData.endIndex), test, label="test1")
 
         testFig.show()
@@ -212,38 +217,71 @@ def main_peak(lineSet):
     finish = False
     lowPoint = mainPeakData.startIndex
     for i in range(mainPeakData.startIndex, mainPeakData.endIndex):
-        if increased >= 10:
-            peakNumber += 1
-            decreased = 0
-            increased = 0
-            finish = True
+#        if increased >= 10:
+#            peakNumber += 1
+#            decreased = 0
+#            increased = 0
+#            finish = True
+
+#        if decreased >= 10:
+#            if finish:
+#                break
+#            if smoothedPeak[lowPoint] > smoothedPeak[i]:
+#                mainPeakData.lastPeakIndex = lowPoint = i
+#                increased = 0
+#            else:
+#                increased += 1
 
         if decreased >= 10:
-            if finish:
-                break
-            if smoothedPeak[lowPoint] > smoothedPeak[i]:
-                mainPeakData.lastPeakIndex = lowPoint = i
+            peakNumber = 1
+            if smoothedPeak[mainPeakData.lowIndex] > smoothedPeak[i]:
                 increased = 0
+                mainPeakData.lowIndex = i
             else:
                 increased += 1
 
+        if increased >= 10:
+            break
+
         if peakNumber == 0:
             if smoothedPeak[mainPeakData.initialPeakIndex] < smoothedPeak[i]:
+                decreased = 0
                 mainPeakData.initialPeakIndex = i
+                mainPeakData.lowIndex = i
             else:
                 decreased += 1
 
-        if peakNumber == 1:
-            if smoothedPeak[mainPeakData.middlePeakIndex] < smoothedPeak[i]:
-                mainPeakData.middlePeakIndex = i
-            else:
-                decreased += 1
+#        if peakNumber == 1:
+#            if smoothedPeak[mainPeakData.middlePeakIndex] < smoothedPeak[i]:
+#                mainPeakData.middlePeakIndex = i
+#            else:
+#                decreased += 1
 
 #        if peakNumber == 2:
 #            if smoothedPeak[mainPeakData.lastPeakIndex] < smoothedPeak[i]:
 #                mainPeakData.lastPeakIndex = i
 #            else:
 #                decreased += 1
+
+    # Peak Boundaries
+    initialPeakValue = smoothedPeak[mainPeakData.initialPeakIndex]
+
+    for i in range(mainPeakData.startIndex, mainPeakData.initialPeakIndex):
+        if initialPeakValue - smoothedPeak[i] < 0.01:
+            mainPeakData.peakBound[0] = i
+            break
+
+    for i in range(mainPeakData.initialPeakIndex, mainPeakData.lowIndex):
+        if initialPeakValue - smoothedPeak[i] < 0.01:
+            mainPeakData.peakBound[1] = i
+
+    mainPeakData.peakCenter = data.energy[mainPeakData.peakBound[0]] + (data.energy[mainPeakData.peakBound[1]] - data.energy[mainPeakData.peakBound[0]])/2
+    mainPeakData.peakCenterDiff = data.energy[mainPeakData.initialPeakIndex] - mainPeakData.peakCenter
+
+    mainPeakData.peakCenterOffset = mainPeakData.initialPeakIndex - mainPeakData.peakBound[0]
+    for i in range(mainPeakData.peakBound[0], mainPeakData.peakBound[1]):
+        if data.energy[i] <= mainPeakData.peakCenter:
+            mainPeakData.peakCenterOffset = i
 
     lineSet.set_store(constants.MainPeakData.storeName, mainPeakData)
 
