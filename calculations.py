@@ -208,32 +208,42 @@ def main_peak(lineSet):
 
     peakNumber = 0
     decreased = 0
+    increased = 0
+    finish = False
     lowPoint = mainPeakData.startIndex
     for i in range(mainPeakData.startIndex, mainPeakData.endIndex):
+        if increased >= 10:
+            peakNumber += 1
+            decreased = 0
+            increased = 0
+            finish = True
+
         if decreased >= 10:
-            if data.norm_corr[lowPoint] > data.norm_corr[i]:
-                lowPoint = i
+            if finish:
+                break
+            if smoothedPeak[lowPoint] > smoothedPeak[i]:
+                mainPeakData.lastPeakIndex = lowPoint = i
+                increased = 0
             else:
-                peakNumber += 1
-                decreased = 0
+                increased += 1
 
         if peakNumber == 0:
-            if data.norm_corr[mainPeakData.initialPeakIndex] < data.norm_corr[i]:
+            if smoothedPeak[mainPeakData.initialPeakIndex] < smoothedPeak[i]:
                 mainPeakData.initialPeakIndex = i
             else:
                 decreased += 1
 
         if peakNumber == 1:
-            if data.norm_corr[mainPeakData.middlePeakIndex] < data.norm_corr[i]:
+            if smoothedPeak[mainPeakData.middlePeakIndex] < smoothedPeak[i]:
                 mainPeakData.middlePeakIndex = i
             else:
                 decreased += 1
 
-        if peakNumber == 2:
-            if data.norm_corr[mainPeakData.lastPeakIndex] < data.norm_corr[i]:
-                mainPeakData.lastPeakIndex = i
-            else:
-                decreased += 1
+#        if peakNumber == 2:
+#            if smoothedPeak[mainPeakData.lastPeakIndex] < smoothedPeak[i]:
+#                mainPeakData.lastPeakIndex = i
+#            else:
+#                decreased += 1
 
     lineSet.set_store(constants.MainPeakData.storeName, mainPeakData)
 

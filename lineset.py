@@ -193,17 +193,17 @@ class LineSet(object):
                            label='smoothed'
                            )
 
-            self.plot.plot(self.data.energy[store.initialPeakIndex], self.data.norm_corr[store.initialPeakIndex],
+            self.plot.plot(self.data.energy[store.initialPeakIndex], store.smoothedPeak[store.initialPeakIndex],
                            marker='o',
                            markersize=5
                            )
 
-            self.plot.plot(self.data.energy[store.middlePeakIndex], self.data.norm_corr[store.middlePeakIndex],
+            self.plot.plot(self.data.energy[store.middlePeakIndex], store.smoothedPeak[store.middlePeakIndex],
                            marker='x',
                            markersize=5
                            )
 
-            self.plot.plot(self.data.energy[store.lastPeakIndex], self.data.norm_corr[store.lastPeakIndex],
+            self.plot.plot(self.data.energy[store.lastPeakIndex], store.smoothedPeak[store.lastPeakIndex],
                            marker='+',
                            markersize=5
                            )
