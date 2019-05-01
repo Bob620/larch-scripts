@@ -52,16 +52,16 @@ class AbscorrLine:
         self.abscorr = abscorr
         self.visible = True
 
-        legend = plot.legend_
+#        legend = plot.legend_
 
-        test = Line2D([0], [0], label=abscorr._label,
-                      gid=gid,
-                      pickradius=5
-                      )
+#        test = Line2D([0], [0], label=abscorr._label,
+#                      gid=gid,
+#                      pickradius=5
+#                      )
 
-        legend.legendHandles.append(test)
+#        legend.legendHandles.append(test)
 
-        plot.legend(handles=legend.legendHandles)
+#        plot.legend(handles=legend.legendHandles)
 
         self.toggle(self.visible)
 

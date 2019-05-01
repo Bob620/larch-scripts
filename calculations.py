@@ -3,6 +3,7 @@ import math
 import constants
 
 from scipy import signal
+import matplotlib.pyplot as plt
 
 
 class EdgeData:
@@ -161,12 +162,37 @@ def main_peak(lineSet):
             mainPeakData.endIndex = j
 
     derivative = []
-    currentIndex = mainPeakData.startIndex
+    smoothDerivative = []
 
     for i in range(mainPeakData.startIndex + 1, mainPeakData.endIndex + 1):
-        derivative.append(data.norm_corr[i] - data.norm_corr[currentIndex])
+        derivative.append(data.norm_corr[i] - data.norm_corr[i - 1])
 
     mainPeakData.derivative = derivative
+
+    if len(derivative) >= 9:
+        smoothDerivative = signal.savgol_filter(derivative, 9, 2)
+
+        for i in range(0, len(smoothDerivative)):
+            smoothDerivative[i]
+
+        test = []
+
+        for i in range(mainPeakData.startIndex, mainPeakData.endIndex):
+            test.append(data.norm_corr[i]/100)
+
+
+
+        testFig, testPlt = plt.subplots()
+        testPlt.set(xlabel='Energy (eV)',
+                     ylabel='normalized $ \mu(E) $ D',
+                     title=data.filename
+                     )
+
+        testPlt.plot(range(mainPeakData.startIndex, mainPeakData.endIndex), smoothDerivative)
+        # testPlt.plot(range(mainPeakData.startIndex, mainPeakData.endIndex), derivative, label="test")
+        testPlt.plot(range(mainPeakData.startIndex, mainPeakData.endIndex), test, label="test1")
+
+        testFig.show()
 
     mainPeakData.startValue = data.norm_corr[mainPeakData.startIndex]
     mainPeakData.endValue = data.norm_corr[mainPeakData.endIndex]
