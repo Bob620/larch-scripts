@@ -275,6 +275,27 @@ def main_peak(lineSet):
         if initialPeakValue - smoothedPeak[i] < 0.01:
             mainPeakData.peakBound[1] = i
 
+    if smoothedPeak[mainPeakData.peakBound[0]] > smoothedPeak[mainPeakData.peakBound[1]]:
+        actualDiff = abs(smoothedPeak[mainPeakData.peakBound[0]] - smoothedPeak[mainPeakData.peakBound[1]])
+        highDiff = abs(smoothedPeak[mainPeakData.peakBound[0]] - smoothedPeak[mainPeakData.peakBound[0] - 1])
+        lowDiff = abs(smoothedPeak[mainPeakData.peakBound[1] - 1] - smoothedPeak[mainPeakData.peakBound[1]])
+        if highDiff < lowDiff:
+            if highDiff < actualDiff:
+                mainPeakData.peakBound[0] = mainPeakData.peakBound[0] - 1
+        else:
+            if lowDiff < actualDiff:
+                mainPeakData.peakBound[1] = mainPeakData.peakBound[1] - 1
+    else:
+        actualDiff = abs(smoothedPeak[mainPeakData.peakBound[0]] - smoothedPeak[mainPeakData.peakBound[1]])
+        highDiff = abs(smoothedPeak[mainPeakData.peakBound[1]] - smoothedPeak[mainPeakData.peakBound[1] - 1])
+        lowDiff = abs(smoothedPeak[mainPeakData.peakBound[0] - 1] - smoothedPeak[mainPeakData.peakBound[0]])
+        if highDiff < lowDiff:
+            if highDiff < actualDiff:
+                mainPeakData.peakBound[1] = mainPeakData.peakBound[1] - 1
+        else:
+            if lowDiff < actualDiff:
+                mainPeakData.peakBound[0] = mainPeakData.peakBound[0] - 1
+
     mainPeakData.peakCenter = data.energy[mainPeakData.peakBound[0]] + (data.energy[mainPeakData.peakBound[1]] - data.energy[mainPeakData.peakBound[0]])/2
     mainPeakData.peakCenterDiff = data.energy[mainPeakData.initialPeakIndex] - mainPeakData.peakCenter
 
@@ -286,4 +307,3 @@ def main_peak(lineSet):
     lineSet.set_store(constants.MainPeakData.storeName, mainPeakData)
 
     return
-

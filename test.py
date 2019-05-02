@@ -169,6 +169,17 @@ print(''.ljust(25), '   ',
       'far pos-neg diff'.ljust(14)
       )
 
+print(''.ljust(25), '   ',
+      str('peakBoundLow').ljust(13), '   ',
+      str('peakBoundHi').ljust(12), '   ',
+      str('peakEnergy').ljust(20), '   ',
+      str('peakCenter').ljust(15)[:15], '  ',
+      str('peakDiff').ljust(11)[:11], '   ',
+      str('peakOffset').ljust(10)[:10], '   ',
+      str('peakIndex').ljust(14), '   ',
+      str('indexOffset').ljust(14), '   '
+      )
+
 print('\n')
 
 for name in lines:
@@ -193,7 +204,7 @@ for name in lines:
           str(data.energy[edgeData.farthestPositiveIndex]).ljust(20)[:15], '  ',
           str(edgeData.closestIndex).ljust(11), '   ',
           str(edgeData.closestDiff).ljust(20)[:10], '   ',
-          str(edgeData.shoulderAngle).ljust(20)[:9].ljust(14)
+          str(edgeData.shoulderAngle).ljust(20)[:9].ljust(14), '   ',
           )
 
     print(''.ljust(25), '   ',
@@ -204,6 +215,17 @@ for name in lines:
           ''.ljust(11), '   ',
           ''.ljust(20)[:10], '   ',
           str(abs(edgeData.farthestPositiveDiff - edgeData.farthestNegativeDiff)).ljust(20)[:9].ljust(14)
+          )
+
+    print(''.ljust(25), '   ',
+          str(mainPeakData.peakBound[0]).ljust(13)[:13], '   ',
+          str(mainPeakData.peakBound[1]).ljust(12), '   ',
+          str(data.energy[mainPeakData.initialPeakIndex]).ljust(20), '   ',
+          str(mainPeakData.peakCenter).ljust(15)[:15], '  ',
+          '{:f}'.format(mainPeakData.peakCenterDiff).ljust(11)[:11], '   ',
+          str(mainPeakData.peakCenterOffset).ljust(10)[:10], '   ',
+          str(mainPeakData.initialPeakIndex).ljust(14), '   ',
+          str(abs(mainPeakData.initialPeakIndex - mainPeakData.peakCenterOffset)).ljust(14), '   '
           )
 
     print('')
