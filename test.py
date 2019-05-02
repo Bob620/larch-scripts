@@ -225,7 +225,8 @@ for name in lines:
           '{:f}'.format(mainPeakData.peakCenterDiff).ljust(11)[:11], '   ',
           str(mainPeakData.peakCenterOffset).ljust(10)[:10], '   ',
           str(mainPeakData.initialPeakIndex).ljust(14), '   ',
-          str(abs(mainPeakData.initialPeakIndex - mainPeakData.peakCenterOffset)).ljust(14), '   '
+          str(abs(mainPeakData.initialPeakIndex - mainPeakData.peakCenterOffset)).ljust(14), '   ',
+          str(abs(mainPeakData.smoothedPeak[mainPeakData.peakBound[0]] - mainPeakData.smoothedPeak[mainPeakData.peakBound[1]])).ljust(14), '   '
           )
 
     print('')

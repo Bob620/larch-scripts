@@ -183,7 +183,7 @@ def main_peak(lineSet):
         test = []
 
         for i in range(mainPeakData.startIndex, mainPeakData.endIndex):
-            test.append(data.norm_corr[i]/100)
+            test.append(math.log2(data.norm_corr[i]))
 
 
 
@@ -275,10 +275,10 @@ def main_peak(lineSet):
         if initialPeakValue - smoothedPeak[i] < 0.01:
             mainPeakData.peakBound[1] = i
 
+    actualDiff = abs(smoothedPeak[mainPeakData.peakBound[0]] - smoothedPeak[mainPeakData.peakBound[1]])
     if smoothedPeak[mainPeakData.peakBound[0]] > smoothedPeak[mainPeakData.peakBound[1]]:
-        actualDiff = abs(smoothedPeak[mainPeakData.peakBound[0]] - smoothedPeak[mainPeakData.peakBound[1]])
-        highDiff = abs(smoothedPeak[mainPeakData.peakBound[0]] - smoothedPeak[mainPeakData.peakBound[0] - 1])
-        lowDiff = abs(smoothedPeak[mainPeakData.peakBound[1] - 1] - smoothedPeak[mainPeakData.peakBound[1]])
+        highDiff = abs(smoothedPeak[mainPeakData.peakBound[1]] - smoothedPeak[mainPeakData.peakBound[0] - 1])
+        lowDiff = abs(smoothedPeak[mainPeakData.peakBound[1] - 1] - smoothedPeak[mainPeakData.peakBound[0]])
         if highDiff < lowDiff:
             if highDiff < actualDiff:
                 mainPeakData.peakBound[0] = mainPeakData.peakBound[0] - 1
@@ -286,9 +286,8 @@ def main_peak(lineSet):
             if lowDiff < actualDiff:
                 mainPeakData.peakBound[1] = mainPeakData.peakBound[1] - 1
     else:
-        actualDiff = abs(smoothedPeak[mainPeakData.peakBound[0]] - smoothedPeak[mainPeakData.peakBound[1]])
-        highDiff = abs(smoothedPeak[mainPeakData.peakBound[1]] - smoothedPeak[mainPeakData.peakBound[1] - 1])
-        lowDiff = abs(smoothedPeak[mainPeakData.peakBound[0] - 1] - smoothedPeak[mainPeakData.peakBound[0]])
+        highDiff = abs(smoothedPeak[mainPeakData.peakBound[0]] - smoothedPeak[mainPeakData.peakBound[1] - 1])
+        lowDiff = abs(smoothedPeak[mainPeakData.peakBound[0] - 1] - smoothedPeak[mainPeakData.peakBound[1]])
         if highDiff < lowDiff:
             if highDiff < actualDiff:
                 mainPeakData.peakBound[1] = mainPeakData.peakBound[1] - 1
