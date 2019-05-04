@@ -1,3 +1,5 @@
+from functools import reduce
+
 import math
 
 import constants
@@ -131,11 +133,11 @@ def edge(lineSet):
 
     # Calculate extra stuff
     edgeData.avgTangentSlope = (
-                                   (data.norm_corr[edgeData.farthestPositiveIndex - 1] -
-                                    data.norm_corr[edgeData.farthestPositiveIndex]) +
+                                       (data.norm_corr[edgeData.farthestPositiveIndex - 1] -
+                                        data.norm_corr[edgeData.farthestPositiveIndex]) +
 
-                                   (data.norm_corr[edgeData.farthestPositiveIndex] -
-                                    data.norm_corr[edgeData.farthestPositiveIndex] + 1)
+                                       (data.norm_corr[edgeData.farthestPositiveIndex] -
+                                        data.norm_corr[edgeData.farthestPositiveIndex] + 1)
                                ) / 2
 
     edgeData.shoulderAngle = 180 - abs(math.degrees(math.atan(edgeData.avgTangentSlope)) - math.degrees(math.atan(0)))
@@ -143,6 +145,46 @@ def edge(lineSet):
     lineSet.set_store(constants.EdgeData.storeName, edgeData)
     return edgeData
 
+
+def removePeaksAndDips(data, current):
+    if data[0] != 0:
+        data = removePeaksAndDips([0], data)
+
+    if len(current) > 10:
+        peak = current[0]
+        dip = current[0]
+        for item in current:
+            if item[1] > peak[1]:
+                peak = item
+            if item[1] < dip[1]:
+                dip = item
+
+        if peak is current[len(current) - 1] and dip is current[0]:
+            data.append(current)
+
+    return data
+
+
+def findSequence(data, current):
+    if type(data) is not list:
+        return [[[(0, current)]], current, 0]
+
+    curSeq = data[0][len(data[0]) - 1]
+    last = data[1]
+    index = data[2] + 1
+
+    if abs(last - current) <= 0.005:
+        curSeq.append((index, current))
+    else:
+        if len(curSeq) <= 5:
+            data[0][len(data[0]) - 1] = []
+        else:
+            data[0].append([(index, current)])
+
+    data[1] = current
+    data[2] = index
+
+    return data
 
 def main_peak(lineSet):
     data = lineSet.get_data()
@@ -167,7 +209,6 @@ def main_peak(lineSet):
             mainPeakData.endIndex = j
 
     derivative = []
-    smoothDerivative = []
 
     for i in range(mainPeakData.startIndex + 1, mainPeakData.endIndex + 1):
         derivative.append(data.norm_corr[i] - data.norm_corr[i - 1])
@@ -175,27 +216,38 @@ def main_peak(lineSet):
     mainPeakData.derivative = derivative
 
     if len(derivative) >= 9:
-        smoothDerivative = signal.savgol_filter(derivative, 9, 2)
+
+        sequences = reduce(removePeaksAndDips, reduce(findSequence, smoothedPeak[mainPeakData.startIndex : mainPeakData.endIndex])[0])[1:]
+
+        secondDerivative = []
+        smoothDerivative = signal.savgol_filter(derivative, 11, 2)
 
         for i in range(0, len(smoothDerivative)):
-            smoothDerivative[i]
+            secondDerivative.append(smoothDerivative[i] - smoothDerivative[i - 1])
+
+        secondSmoothDerivative = signal.savgol_filter(secondDerivative, 11, 2)
 
         test = []
 
         for i in range(mainPeakData.startIndex, mainPeakData.endIndex):
             test.append(math.log2(data.norm_corr[i]))
 
-
-
         testFig, testPlt = plt.subplots()
         testPlt.set(xlabel='Energy (eV)',
-                     ylabel='normalized $ \mu(E) $ D',
-                     title=data.filename
-                     )
+                    ylabel='normalized $ \mu(E) $ D',
+                    title=data.filename
+                    )
 
         testPlt.plot(range(mainPeakData.startIndex, mainPeakData.endIndex), smoothDerivative)
+        testPlt.plot(range(mainPeakData.startIndex, mainPeakData.endIndex), secondDerivative)
+        testPlt.plot(range(mainPeakData.startIndex, mainPeakData.endIndex), secondSmoothDerivative)
         testPlt.plot(range(mainPeakData.startIndex, mainPeakData.endIndex), derivative, label="test")
         testPlt.plot(range(mainPeakData.startIndex, mainPeakData.endIndex), test, label="test1")
+
+        for seq in sequences:
+            if len(seq) >= 2:
+                testPlt.plot(mainPeakData.startIndex + seq[0][0], test[seq[0][0]], marker='x')
+                testPlt.plot(mainPeakData.startIndex + seq[len(seq) - 1][0], test[seq[len(seq) - 1][0]], marker='x')
 
         testFig.show()
 
@@ -214,24 +266,7 @@ def main_peak(lineSet):
     peakNumber = 0
     decreased = 0
     increased = 0
-    finish = False
-    lowPoint = mainPeakData.startIndex
     for i in range(mainPeakData.startIndex, mainPeakData.endIndex):
-#        if increased >= 10:
-#            peakNumber += 1
-#            decreased = 0
-#            increased = 0
-#            finish = True
-
-#        if decreased >= 10:
-#            if finish:
-#                break
-#            if smoothedPeak[lowPoint] > smoothedPeak[i]:
-#                mainPeakData.lastPeakIndex = lowPoint = i
-#                increased = 0
-#            else:
-#                increased += 1
-
         if decreased >= 10:
             peakNumber = 1
             if smoothedPeak[mainPeakData.lowIndex] > smoothedPeak[i]:
@@ -250,18 +285,6 @@ def main_peak(lineSet):
                 mainPeakData.lowIndex = i
             else:
                 decreased += 1
-
-#        if peakNumber == 1:
-#            if smoothedPeak[mainPeakData.middlePeakIndex] < smoothedPeak[i]:
-#                mainPeakData.middlePeakIndex = i
-#            else:
-#                decreased += 1
-
-#        if peakNumber == 2:
-#            if smoothedPeak[mainPeakData.lastPeakIndex] < smoothedPeak[i]:
-#                mainPeakData.lastPeakIndex = i
-#            else:
-#                decreased += 1
 
     # Peak Boundaries
     initialPeakValue = smoothedPeak[mainPeakData.initialPeakIndex]
@@ -295,13 +318,18 @@ def main_peak(lineSet):
             if lowDiff < actualDiff:
                 mainPeakData.peakBound[0] = mainPeakData.peakBound[0] - 1
 
-    mainPeakData.peakCenter = data.energy[mainPeakData.peakBound[0]] + (data.energy[mainPeakData.peakBound[1]] - data.energy[mainPeakData.peakBound[0]])/2
+    mainPeakData.peakCenter = data.energy[mainPeakData.peakBound[0]] + (
+                data.energy[mainPeakData.peakBound[1]] - data.energy[mainPeakData.peakBound[0]]) / 2
     mainPeakData.peakCenterDiff = data.energy[mainPeakData.initialPeakIndex] - mainPeakData.peakCenter
 
     mainPeakData.peakCenterOffset = mainPeakData.initialPeakIndex - mainPeakData.peakBound[0]
     for i in range(mainPeakData.peakBound[0], mainPeakData.peakBound[1]):
         if data.energy[i] <= mainPeakData.peakCenter:
             mainPeakData.peakCenterOffset = i
+
+    # Working backwards, find the last peak
+
+    #    for i in range(mainPeakData.lowIndex, constants.MainPeakData.endEnergy)[::-1]:
 
     lineSet.set_store(constants.MainPeakData.storeName, mainPeakData)
 
