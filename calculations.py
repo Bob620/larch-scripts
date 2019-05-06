@@ -173,14 +173,15 @@ def main_peak(lineSet):
             mainPeakData.endIndexDiff = abs(data.energy[mainPeakData.startIndex] - constants.EdgeData.endEnergy)
             mainPeakData.endIndex = j
 
-    allSequences = reduce(reducers.findSequence, smoothedPeak[mainPeakData.startIndex: mainPeakData.endIndex])[0]
-    # mainPeakData.peaks = list(filter(filters.getPeaks, allSequences))
-    # mainPeakData.dips = list(filter(filters.getDips, allSequences))
-    mainPeakData.shoulders = list(filter(filters.getShoulders, allSequences))
+    if mainPeakData.endIndex - mainPeakData.startIndex > 0:
+        allSequences = reduce(reducers.findSequence, smoothedPeak[mainPeakData.startIndex: mainPeakData.endIndex])[0]
+        # mainPeakData.peaks = list(filter(filters.getPeaks, allSequences))
+        # mainPeakData.dips = list(filter(filters.getDips, allSequences))
+        mainPeakData.shoulders = list(filter(filters.getShoulders, allSequences))
 
-    for seq in mainPeakData.shoulders:
-        for i in range(0, len(seq)):
-            seq[i] = (seq[i][0] + mainPeakData.startIndex, seq[i][1])
+        for seq in mainPeakData.shoulders:
+            for i in range(0, len(seq)):
+                seq[i] = (seq[i][0] + mainPeakData.startIndex, seq[i][1])
 
     '''
     derivative = []
