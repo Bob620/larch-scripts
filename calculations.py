@@ -1,11 +1,12 @@
 from functools import reduce
-
 import math
 
 import constants
+from curve import filters
+from curve import reducers
 
-from scipy import signal
 import matplotlib.pyplot as plt
+from scipy import signal
 
 
 class EdgeData:
@@ -48,6 +49,7 @@ class MainPeakData:
 
         self.initialPeakIndex = 0
         self.initialPeakSmoothed = []
+        self.initialPeakIsShoulder = False
 
         self.peakBound = [0, 0]
         self.peakCenter = 0
@@ -56,6 +58,10 @@ class MainPeakData:
 
         self.lowIndex = 0
         self.lowSmoothed = 0
+
+        self.peaks = []
+        self.dips = []
+        self.shoulders = []
 
         self.middlePeakIndex = 0
         self.middlePeakSmoothed = []
@@ -145,47 +151,6 @@ def edge(lineSet):
     lineSet.set_store(constants.EdgeData.storeName, edgeData)
     return edgeData
 
-
-def removePeaksAndDips(data, current):
-    if data[0] != 0:
-        data = removePeaksAndDips([0], data)
-
-    if len(current) > 10:
-        peak = current[0]
-        dip = current[0]
-        for item in current:
-            if item[1] > peak[1]:
-                peak = item
-            if item[1] < dip[1]:
-                dip = item
-
-        if peak is current[len(current) - 1] and dip is current[0]:
-            data.append(current)
-
-    return data
-
-
-def findSequence(data, current):
-    if type(data) is not list:
-        return [[[(0, current)]], current, 0]
-
-    curSeq = data[0][len(data[0]) - 1]
-    last = data[1]
-    index = data[2] + 1
-
-    if abs(last - current) <= 0.005:
-        curSeq.append((index, current))
-    else:
-        if len(curSeq) <= 5:
-            data[0][len(data[0]) - 1] = []
-        else:
-            data[0].append([(index, current)])
-
-    data[1] = current
-    data[2] = index
-
-    return data
-
 def main_peak(lineSet):
     data = lineSet.get_data()
 
@@ -208,6 +173,16 @@ def main_peak(lineSet):
             mainPeakData.endIndexDiff = abs(data.energy[mainPeakData.startIndex] - constants.EdgeData.endEnergy)
             mainPeakData.endIndex = j
 
+    allSequences = reduce(reducers.findSequence, smoothedPeak[mainPeakData.startIndex: mainPeakData.endIndex])[0]
+    # mainPeakData.peaks = list(filter(filters.getPeaks, allSequences))
+    # mainPeakData.dips = list(filter(filters.getDips, allSequences))
+    mainPeakData.shoulders = list(filter(filters.getShoulders, allSequences))
+
+    for seq in mainPeakData.shoulders:
+        for i in range(0, len(seq)):
+            seq[i] = (seq[i][0] + mainPeakData.startIndex, seq[i][1])
+
+    '''
     derivative = []
 
     for i in range(mainPeakData.startIndex + 1, mainPeakData.endIndex + 1):
@@ -216,9 +191,6 @@ def main_peak(lineSet):
     mainPeakData.derivative = derivative
 
     if len(derivative) >= 9:
-
-        sequences = reduce(removePeaksAndDips, reduce(findSequence, smoothedPeak[mainPeakData.startIndex : mainPeakData.endIndex])[0])[1:]
-
         secondDerivative = []
         smoothDerivative = signal.savgol_filter(derivative, 11, 2)
 
@@ -241,15 +213,12 @@ def main_peak(lineSet):
         testPlt.plot(range(mainPeakData.startIndex, mainPeakData.endIndex), smoothDerivative)
         testPlt.plot(range(mainPeakData.startIndex, mainPeakData.endIndex), secondDerivative)
         testPlt.plot(range(mainPeakData.startIndex, mainPeakData.endIndex), secondSmoothDerivative)
-        testPlt.plot(range(mainPeakData.startIndex, mainPeakData.endIndex), derivative, label="test")
-        testPlt.plot(range(mainPeakData.startIndex, mainPeakData.endIndex), test, label="test1")
-
-        for seq in sequences:
-            if len(seq) >= 2:
-                testPlt.plot(mainPeakData.startIndex + seq[0][0], test[seq[0][0]], marker='x')
-                testPlt.plot(mainPeakData.startIndex + seq[len(seq) - 1][0], test[seq[len(seq) - 1][0]], marker='x')
+        testPlt.plot(range(mainPeakData.startIndex, mainPeakData.endIndex), smoothedPeak[mainPeakData.startIndex: mainPeakData.endIndex])
+        testPlt.plot(range(mainPeakData.startIndex, mainPeakData.endIndex), derivative)
+        testPlt.plot(range(mainPeakData.startIndex, mainPeakData.endIndex), test)
 
         testFig.show()
+    '''
 
     mainPeakData.startValue = data.norm_corr[mainPeakData.startIndex]
     mainPeakData.endValue = data.norm_corr[mainPeakData.endIndex]
@@ -286,50 +255,53 @@ def main_peak(lineSet):
             else:
                 decreased += 1
 
-    # Peak Boundaries
-    initialPeakValue = smoothedPeak[mainPeakData.initialPeakIndex]
+    if len(mainPeakData.shoulders) == 0 or (len(mainPeakData.shoulders) > 0 and mainPeakData.shoulders[0][0][0] > mainPeakData.lowIndex):
+        # Peak Boundaries
+        initialPeakValue = smoothedPeak[mainPeakData.initialPeakIndex]
 
-    for i in range(mainPeakData.startIndex, mainPeakData.initialPeakIndex):
-        if initialPeakValue - smoothedPeak[i] < 0.01:
-            mainPeakData.peakBound[0] = i
-            break
+        for i in range(mainPeakData.startIndex, mainPeakData.initialPeakIndex):
+            if initialPeakValue - smoothedPeak[i] < 0.01:
+                mainPeakData.peakBound[0] = i
+                break
 
-    for i in range(mainPeakData.initialPeakIndex, mainPeakData.lowIndex):
-        if initialPeakValue - smoothedPeak[i] < 0.01:
-            mainPeakData.peakBound[1] = i
+        for i in range(mainPeakData.initialPeakIndex, mainPeakData.lowIndex):
+            if initialPeakValue - smoothedPeak[i] < 0.01:
+                mainPeakData.peakBound[1] = i
 
-    actualDiff = abs(smoothedPeak[mainPeakData.peakBound[0]] - smoothedPeak[mainPeakData.peakBound[1]])
-    if smoothedPeak[mainPeakData.peakBound[0]] > smoothedPeak[mainPeakData.peakBound[1]]:
-        highDiff = abs(smoothedPeak[mainPeakData.peakBound[1]] - smoothedPeak[mainPeakData.peakBound[0] - 1])
-        lowDiff = abs(smoothedPeak[mainPeakData.peakBound[1] - 1] - smoothedPeak[mainPeakData.peakBound[0]])
-        if highDiff < lowDiff:
-            if highDiff < actualDiff:
-                mainPeakData.peakBound[0] = mainPeakData.peakBound[0] - 1
+        actualDiff = abs(smoothedPeak[mainPeakData.peakBound[0]] - smoothedPeak[mainPeakData.peakBound[1]])
+        if smoothedPeak[mainPeakData.peakBound[0]] > smoothedPeak[mainPeakData.peakBound[1]]:
+            highDiff = abs(smoothedPeak[mainPeakData.peakBound[1]] - smoothedPeak[mainPeakData.peakBound[0] - 1])
+            lowDiff = abs(smoothedPeak[mainPeakData.peakBound[1] - 1] - smoothedPeak[mainPeakData.peakBound[0]])
+            if highDiff < lowDiff:
+                if highDiff < actualDiff:
+                    mainPeakData.peakBound[0] = mainPeakData.peakBound[0] - 1
+            else:
+                if lowDiff < actualDiff:
+                    mainPeakData.peakBound[1] = mainPeakData.peakBound[1] - 1
         else:
-            if lowDiff < actualDiff:
-                mainPeakData.peakBound[1] = mainPeakData.peakBound[1] - 1
+            highDiff = abs(smoothedPeak[mainPeakData.peakBound[0]] - smoothedPeak[mainPeakData.peakBound[1] - 1])
+            lowDiff = abs(smoothedPeak[mainPeakData.peakBound[0] - 1] - smoothedPeak[mainPeakData.peakBound[1]])
+            if highDiff < lowDiff:
+                if highDiff < actualDiff:
+                    mainPeakData.peakBound[1] = mainPeakData.peakBound[1] - 1
+            else:
+                if lowDiff < actualDiff:
+                    mainPeakData.peakBound[0] = mainPeakData.peakBound[0] - 1
+
+        mainPeakData.peakCenter = data.energy[mainPeakData.peakBound[0]] + (
+                    data.energy[mainPeakData.peakBound[1]] - data.energy[mainPeakData.peakBound[0]]) / 2
+        mainPeakData.peakCenterDiff = data.energy[mainPeakData.initialPeakIndex] - mainPeakData.peakCenter
+
+        mainPeakData.peakCenterOffset = mainPeakData.initialPeakIndex - mainPeakData.peakBound[0]
+        for i in range(mainPeakData.peakBound[0], mainPeakData.peakBound[1]):
+            if data.energy[i] <= mainPeakData.peakCenter:
+                mainPeakData.peakCenterOffset = i
     else:
-        highDiff = abs(smoothedPeak[mainPeakData.peakBound[0]] - smoothedPeak[mainPeakData.peakBound[1] - 1])
-        lowDiff = abs(smoothedPeak[mainPeakData.peakBound[0] - 1] - smoothedPeak[mainPeakData.peakBound[1]])
-        if highDiff < lowDiff:
-            if highDiff < actualDiff:
-                mainPeakData.peakBound[1] = mainPeakData.peakBound[1] - 1
-        else:
-            if lowDiff < actualDiff:
-                mainPeakData.peakBound[0] = mainPeakData.peakBound[0] - 1
-
-    mainPeakData.peakCenter = data.energy[mainPeakData.peakBound[0]] + (
-                data.energy[mainPeakData.peakBound[1]] - data.energy[mainPeakData.peakBound[0]]) / 2
-    mainPeakData.peakCenterDiff = data.energy[mainPeakData.initialPeakIndex] - mainPeakData.peakCenter
-
-    mainPeakData.peakCenterOffset = mainPeakData.initialPeakIndex - mainPeakData.peakBound[0]
-    for i in range(mainPeakData.peakBound[0], mainPeakData.peakBound[1]):
-        if data.energy[i] <= mainPeakData.peakCenter:
-            mainPeakData.peakCenterOffset = i
+        mainPeakData.initialPeakIsShoulder = True
 
     # Working backwards, find the last peak
 
-    #    for i in range(mainPeakData.lowIndex, constants.MainPeakData.endEnergy)[::-1]:
+    # for i in range(mainPeakData.lowIndex, constants.MainPeakData.endEnergy)[::-1]:
 
     lineSet.set_store(constants.MainPeakData.storeName, mainPeakData)
 

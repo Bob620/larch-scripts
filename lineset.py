@@ -213,7 +213,18 @@ class LineSet(object):
                            markersize=5
                            )
 
-            self.plot.plot(store.peakCenter, store.smoothedPeak[store.initialPeakIndex],
-                           marker='x',
+            self.plot.plot(self.data.energy[store.peakCenterOffset], store.smoothedPeak[store.peakCenterOffset],
+                           marker='+',
                            markersize=5
                            )
+
+            for seq in store.shoulders:
+                self.plot.plot(self.data.energy[seq[0][0]], store.smoothedPeak[seq[0][0]],
+                               marker='D',
+                               markersize=5
+                               )
+
+                self.plot.plot(self.data.energy[seq[len(seq) - 1][0]], store.smoothedPeak[seq[len(seq) - 1][0]],
+                               marker='D',
+                               markersize=5
+                               )
