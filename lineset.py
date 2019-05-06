@@ -228,3 +228,25 @@ class LineSet(object):
                                marker='D',
                                markersize=5
                                )
+
+            for seq in store.peaks:
+                self.plot.plot(self.data.energy[seq[0][0]], store.smoothedPeak[seq[0][0]],
+                               marker='H',
+                               markersize=5
+                               )
+
+                self.plot.plot(self.data.energy[seq[len(seq) - 1][0]], store.smoothedPeak[seq[len(seq) - 1][0]],
+                               marker='H',
+                               markersize=5
+                               )
+
+            for seq in store.dips:
+                self.plot.plot(self.data.energy[seq[0][0]], store.smoothedPeak[seq[0][0]],
+                               marker='*',
+                               markersize=5
+                               )
+
+                self.plot.plot(self.data.energy[seq[len(seq) - 1][0]], store.smoothedPeak[seq[len(seq) - 1][0]],
+                               marker='*',
+                               markersize=5
+                               )

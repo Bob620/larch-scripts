@@ -175,11 +175,19 @@ def main_peak(lineSet):
 
     if mainPeakData.endIndex - mainPeakData.startIndex > 0:
         allSequences = reduce(reducers.findSequence, smoothedPeak[mainPeakData.startIndex: mainPeakData.endIndex])[0]
-        # mainPeakData.peaks = list(filter(filters.getPeaks, allSequences))
-        # mainPeakData.dips = list(filter(filters.getDips, allSequences))
+        mainPeakData.peaks = list(filter(filters.getPeaks, allSequences))
+        mainPeakData.dips = list(filter(filters.getDips, allSequences))
         mainPeakData.shoulders = list(filter(filters.getShoulders, allSequences))
 
         for seq in mainPeakData.shoulders:
+            for i in range(0, len(seq)):
+                seq[i] = (seq[i][0] + mainPeakData.startIndex, seq[i][1])
+
+        for seq in mainPeakData.peaks:
+            for i in range(0, len(seq)):
+                seq[i] = (seq[i][0] + mainPeakData.startIndex, seq[i][1])
+
+        for seq in mainPeakData.dips:
             for i in range(0, len(seq)):
                 seq[i] = (seq[i][0] + mainPeakData.startIndex, seq[i][1])
 
