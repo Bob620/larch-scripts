@@ -1,27 +1,25 @@
-import os
 import math
 
 import numpy as np
 import matplotlib.pyplot as plt
 from larch import Interpreter
-from larch_plugins.io import read_ascii
 
 import constants
-import transformations
 import calculations
+import transformations
+from larchio import readStructDirectory
 from legend import interactive_legend
-from lineset import LineSet
 
 larchInstance = Interpreter()
 
 baseUri = input('Enter the directory Location: ').replace('\\', '/')
 outputNameRaw = input('Enter output project name(optional, enter for none): ')
 metaName = (input('Enter metadata file name(default: \'meta.csv\'): ') or 'meta.csv')
-defaultFormulaRaw = input('Enter a default formula(default: skips files without formula): ').strip()
+# defaultFormulaRaw = input('Enter a default formula(default: skips files without formula): ').strip()
 willGraph = input('Do you want to graph these?(y/n default: n) ').lower().startswith('y')
 
 outputName = ''
-defaultMeta = None
+# defaultMeta = None
 
 if not baseUri.endswith('/'):
     baseUri += '/'
@@ -29,101 +27,38 @@ if not baseUri.endswith('/'):
 if outputNameRaw is not '' and not outputNameRaw.endswith('.prj'):
     outputName = outputNameRaw + '.prj'
 
-if defaultFormulaRaw is not '':
-    defaultMeta = {'formula': defaultFormulaRaw}
+# if defaultFormulaRaw is not '':
+#    defaultMeta = {'formula': defaultFormulaRaw}
 
-# 7118.5
-# 7125.0
-
-sampleNameHeader = 'sample number'
-sampleFormulaHeader = 'formula'
-directory = None
-meta = {}
-outputData = []
 lines = {}
 lineSearchSet = {}
 
 try:
-    directory = os.scandir(baseUri)
-except IOError:
-    print('\nDirectory not accessible.\n')
-else:
-    metaLines = []
+    lines, failedToRead, skippedFiles = readStructDirectory(baseUri)
 
-    try:
-        fh = open(baseUri + metaName, 'r')
-    except IOError:
-        print('No meta file found\n')
-    else:
-        metaLines = fh.readlines()
-        fh.close()
-        print('Meta file read in')
+    print('Failed to read in {:d} files from the directory.'.format(len(failedToRead)))
+    print('Skipped {:d} files due to incorrect names or not files or no metadata.'.format(len(skippedFiles)))
 
-    metaColumnNames = []
-    for line in metaLines:
-        info = line.strip('\n').split(',')
+    for uuid, lineSet in lines.items():
+        print('Pre-Processing {}'.format(lineSet.get_name()))
+        print('UUID: {}'.format(uuid))
 
-        if len(metaColumnNames) == 0:
-            for name in info:
-                metaColumnNames.append(name.strip().lower())
+        print('Calculating mu for fe_ka...')
+        transformations.fe_calculate_mu(lineSet)
 
-        else:
-            if len(info) >= len(metaColumnNames):
-                meta[info[metaColumnNames.index(sampleNameHeader)].strip()] = {
-                    'formula': info[metaColumnNames.index(sampleFormulaHeader)]
-                        .strip().replace('\t', '').replace('"', '').replace('\'', '')
-                }
+        print('Calculating the Pre-Edge Subtraction/Normalization...')
+        transformations.calculate_pre_edge(lineSet)
 
-if directory is not None:
-    for entry in directory:
-        if entry.is_file():
-            if entry.name.endswith('.001'):
-                print('Reading in', entry.name, '...')
-                try:
-                    file = read_ascii(entry.path,
-                                      labels='energy 0 i0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 Fe_Ka1 Fe_Ka2 Fe_Ka3 Fe_Ka4')
-                except Exception as err:
-                    print('not able to read', entry.name)
-                    print(err)
-                else:
-                    print('Getting metadata...')
-                    thisMeta = None
+        print('Calculating the Over Absorption...')
+        transformations.fe_calculate_abs_corr(lineSet)
 
-                    for metaName, metadata in meta.items():
-                        if entry.name.startswith(metaName):
-                            thisMeta = metadata
-                            pass
+        # print('Calculating the Baseline Subtraction...')
+        # pre_edge_baseline(energy=file,norm=file.norm_corr, group=file, emin=7105, larch=larchInstance)
 
-                    if thisMeta is None:
-                        print('No metadata found.')
-                        if defaultMeta is not None:
-                            print('Using default metadata')
-                            thisMeta = defaultMeta
+except IOError as err:
+    print(err)
 
-                    if thisMeta is not None:
-                        formula = thisMeta['formula']
-                        print('Got metadata.')
-
-                        lineSet = LineSet(file, formula)
-
-                        print('Calculating mu for fe_ka...')
-                        transformations.fe_calculate_mu(lineSet)
-
-                        print('Calculating the Pre-Edge Subtraction/Normalization...')
-                        transformations.calculate_pre_edge(lineSet)
-
-                        print('Calculating the Over Absorption...')
-                        transformations.fe_calculate_abs_corr(lineSet)
-
-                        # print('Calculating the Baseline Subtraction...')
-                        # pre_edge_baseline(energy=file,norm=file.norm_corr, group=file, emin=7105, larch=larchInstance)
-
-                        lines[lineSet.get_uuid()] = lineSet
-                        outputData.append(file)
-
-    directory.close()
-
-print('Read in', len(outputData), 'files.')
+print('Read in', len(lines), 'files.')
 
 mainFig, mainPlot = None, None
 

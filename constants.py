@@ -21,11 +21,18 @@ class MainPeakData:
     endEnergy = 7135.0
 
 
+class IO:
+    sampleNameHeader = 'sample number'
+    sampleFormulaHeader = 'formula'
+    metaFileName = 'meta.csv'
+
+
 class Const:
     version = '1.0.0'
     Fe = Fe()
     EdgeData = EdgeData()
     MainPeakData = MainPeakData()
+    IO = IO()
 
 
 sys.modules[__name__] = Const()
