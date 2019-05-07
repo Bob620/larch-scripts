@@ -63,6 +63,11 @@ class MainPeakData:
         self.dips = []
         self.shoulders = []
 
+        self.shoulderBound = [0, 0]
+        self.shoulderCenter = 0
+        self.shoulderCenterActual = 0
+        self.shoulderDiff = 0
+
         self.middlePeakIndex = 0
         self.middlePeakSmoothed = []
 
@@ -314,6 +319,14 @@ def main_peak(lineSet):
                 mainPeakData.peakCenterOffset = i
     else:
         mainPeakData.initialPeakIsShoulder = True
+        mainPeakData.shoulderBound = [mainPeakData.shoulders[0][0][0],
+                                      mainPeakData.shoulders[0][len(mainPeakData.shoulders[0]) - 1][0]]
+        mainPeakData.shoulderCenter = (data.energy[mainPeakData.shoulderBound[1]] +
+                                       data.energy[mainPeakData.shoulderBound[0]]) / 2
+        mainPeakData.shoulderCenterIndex = round((mainPeakData.shoulderBound[1] + mainPeakData.shoulderBound[0]) / 2)
+        mainPeakData.shoulderCenterActual = smoothedPeak[round((mainPeakData.shoulderBound[1] -
+                                                                mainPeakData.shoulderBound[0]) / 2)]
+        mainPeakData.shoulderDiff = mainPeakData.shoulderCenterActual - mainPeakData.shoulderCenter
 
     # Working backwards, find the last peak
 

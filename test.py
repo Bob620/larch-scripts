@@ -4,6 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from larch import Interpreter
 
+import classification
+import classification.edge
+import classification.mainpeak
 import constants
 import calculations
 import transformations
@@ -114,7 +117,14 @@ print(''.ljust(25), '   ',
       str('peakIndex').ljust(14), '   ',
       str('indexOffset').ljust(14), '   ',
       str('boundDiff').ljust(11), '   ',
-      str('initialShoulder').ljust(15), '   '
+      str('peakBoundLow').ljust(12)[:12], '   ',
+      str('peakBoundHi').ljust(12)[:12], '   '
+      )
+
+print(''.ljust(25), '   ',
+      str('edgeClass').ljust(46), '   ',
+      str('initialClass').ljust(46), '   ',
+      str('secondClass').ljust(46), '   '
       )
 
 print('\n')
@@ -125,6 +135,9 @@ for name in lines:
     # Stuff
     calculations.edge(lineSet)
     calculations.main_peak(lineSet)
+    edgeClass = classification.edge.features(lineSet)
+    initialPeakClass = classification.mainpeak.initialPeak(lineSet)
+    secondPeakClass = classification.mainpeak.secondPeak(lineSet)
 
     data = lineSet.get_data()
     edgeData = lineSet.get_store(constants.EdgeData.storeName)
@@ -164,7 +177,14 @@ for name in lines:
           str(mainPeakData.initialPeakIndex).ljust(14), '   ',
           str(abs(mainPeakData.initialPeakIndex - mainPeakData.peakCenterOffset)).ljust(14), '   ',
           str(abs(mainPeakData.smoothedPeak[mainPeakData.peakBound[0]] - mainPeakData.smoothedPeak[mainPeakData.peakBound[1]])).ljust(11)[:11], '   ',
-          str('').ljust(15)[:15], '   '
+          str(data.energy[mainPeakData.peakBound[0]]).ljust(12)[:12], '   ',
+          str(data.energy[mainPeakData.peakBound[1]]).ljust(12)[:12], '   '
+          )
+
+    print(''.ljust(25), '   ',
+          str(' '.join(edgeClass)).ljust(46), '   ',
+          str(' '.join(initialPeakClass)).ljust(46), '   ',
+          str(secondPeakClass).ljust(46), '   '
           )
 
     print('')
