@@ -2,7 +2,7 @@ from functools import reduce
 import math
 
 import constants
-from curve import filters
+from curve import filters, maps
 from curve import reducers
 
 import matplotlib.pyplot as plt
@@ -151,6 +151,7 @@ def edge(lineSet):
     lineSet.set_store(constants.EdgeData.storeName, edgeData)
     return edgeData
 
+
 def main_peak(lineSet):
     data = lineSet.get_data()
 
@@ -174,11 +175,16 @@ def main_peak(lineSet):
             mainPeakData.endIndex = j
 
     if mainPeakData.endIndex - mainPeakData.startIndex > 0:
-        allSequences = reduce(reducers.findSequence, smoothedPeak[mainPeakData.startIndex: mainPeakData.endIndex])[0]
+        allSequences = list(filter(filters.removeEmptyLists,
+                                   reduce(reducers.findSequence,
+                                          smoothedPeak[mainPeakData.startIndex: mainPeakData.endIndex])[0]))
+        allSequences = list(map(maps.normalizeSeqIndex, allSequences, [mainPeakData.startIndex] * len(allSequences)))
+
         mainPeakData.peaks = list(filter(filters.getPeaks, allSequences))
         mainPeakData.dips = list(filter(filters.getDips, allSequences))
         mainPeakData.shoulders = list(filter(filters.getShoulders, allSequences))
 
+    '''
         for seq in mainPeakData.shoulders:
             for i in range(0, len(seq)):
                 seq[i] = (seq[i][0] + mainPeakData.startIndex, seq[i][1])
@@ -190,7 +196,7 @@ def main_peak(lineSet):
         for seq in mainPeakData.dips:
             for i in range(0, len(seq)):
                 seq[i] = (seq[i][0] + mainPeakData.startIndex, seq[i][1])
-
+    '''
     '''
     derivative = []
 
@@ -264,7 +270,8 @@ def main_peak(lineSet):
             else:
                 decreased += 1
 
-    if len(mainPeakData.shoulders) == 0 or (len(mainPeakData.shoulders) > 0 and mainPeakData.shoulders[0][0][0] > mainPeakData.lowIndex):
+    if len(mainPeakData.shoulders) == 0 or (
+            len(mainPeakData.shoulders) > 0 and mainPeakData.shoulders[0][0][0] > mainPeakData.lowIndex):
         # Peak Boundaries
         initialPeakValue = smoothedPeak[mainPeakData.initialPeakIndex]
 
@@ -298,7 +305,7 @@ def main_peak(lineSet):
                     mainPeakData.peakBound[0] = mainPeakData.peakBound[0] - 1
 
         mainPeakData.peakCenter = data.energy[mainPeakData.peakBound[0]] + (
-                    data.energy[mainPeakData.peakBound[1]] - data.energy[mainPeakData.peakBound[0]]) / 2
+                data.energy[mainPeakData.peakBound[1]] - data.energy[mainPeakData.peakBound[0]]) / 2
         mainPeakData.peakCenterDiff = data.energy[mainPeakData.initialPeakIndex] - mainPeakData.peakCenter
 
         mainPeakData.peakCenterOffset = mainPeakData.initialPeakIndex - mainPeakData.peakBound[0]

@@ -18,3 +18,15 @@ def findSequence(data, current):
     data[2] = index
 
     return data
+
+
+def findDipInList(lowest, current):
+    if current[1] < lowest[1]:
+        return current
+    return lowest
+
+
+def findPeakInList(highest, current):
+    if current[1] > highest[1]:
+        return current
+    return highest

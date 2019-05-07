@@ -44,3 +44,9 @@ def getDips(current):
                 (dip is not current[0] and dip is not current[len(current) - 1]):
             return True
     return False
+
+
+def removeEmptyLists(item):
+    if len(item) == 0:
+        return False
+    return True

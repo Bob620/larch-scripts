@@ -113,7 +113,8 @@ print(''.ljust(25), '   ',
       str('peakOffset').ljust(10)[:10], '   ',
       str('peakIndex').ljust(14), '   ',
       str('indexOffset').ljust(14), '   ',
-      str('boundDiff').ljust(11), '   '
+      str('boundDiff').ljust(11), '   ',
+      str('initialShoulder').ljust(15), '   '
       )
 
 print('\n')
@@ -162,7 +163,8 @@ for name in lines:
           str(mainPeakData.peakCenterOffset).ljust(10)[:10], '   ',
           str(mainPeakData.initialPeakIndex).ljust(14), '   ',
           str(abs(mainPeakData.initialPeakIndex - mainPeakData.peakCenterOffset)).ljust(14), '   ',
-          str(abs(mainPeakData.smoothedPeak[mainPeakData.peakBound[0]] - mainPeakData.smoothedPeak[mainPeakData.peakBound[1]])).ljust(11)[:11], '   '
+          str(abs(mainPeakData.smoothedPeak[mainPeakData.peakBound[0]] - mainPeakData.smoothedPeak[mainPeakData.peakBound[1]])).ljust(11)[:11], '   ',
+          str('').ljust(15)[:15], '   '
           )
 
     print('')
