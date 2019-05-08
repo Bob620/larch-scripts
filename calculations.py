@@ -75,6 +75,14 @@ class MainPeakData:
         self.lastPeakSmoothed = []
 
 
+class Peak:
+    def __init__(self):
+        self.lowIndex = 0
+        self.actualPeakIndex = 0
+        self.highIndex = 0
+        self.peakEnergy = 0
+
+
 def pre_edge(lineSet):
     return
 
@@ -185,8 +193,6 @@ def main_peak(lineSet):
                                           smoothedPeak[mainPeakData.startIndex: mainPeakData.endIndex])[0]))
         allSequences = list(map(maps.normalizeSeqIndex, allSequences, [mainPeakData.startIndex] * len(allSequences)))
 
-        mainPeakData.peaks = list(filter(filters.getPeaks, allSequences))
-        mainPeakData.dips = list(filter(filters.getDips, allSequences))
         mainPeakData.shoulders = list(filter(filters.getShoulders, allSequences))
 
     '''
@@ -328,9 +334,50 @@ def main_peak(lineSet):
                                                                 mainPeakData.shoulderBound[0]) / 2)]
         mainPeakData.shoulderDiff = mainPeakData.shoulderCenterActual - mainPeakData.shoulderCenter
 
-    # Working backwards, find the last peak
+    # Now we can figure out what the heck is happening on the last part of this peak set
 
-    # for i in range(mainPeakData.lowIndex, constants.MainPeakData.endEnergy)[::-1]:
+    lowIndex = mainPeakData.lowIndex
+    if mainPeakData.initialPeakIsShoulder:
+        lowIndex = mainPeakData.shoulderBound[1]
+
+    peaks = reduce(reducers.findPeak, smoothedPeak[lowIndex: mainPeakData.endIndex+10])[0]
+    peaks = list(map(maps.normalizeSeqIndex, peaks, [lowIndex] * len(peaks)))
+
+    for seq in peaks:
+        peakPoint = reduce(reducers.findPeakInList, seq)
+        lowEBound = seq[0]
+        highEBound = seq[len(seq) - 1]
+
+        actualDiff = abs(smoothedPeak[lowEBound[0]] - smoothedPeak[highEBound[0]])
+        if smoothedPeak[lowEBound[0]] > smoothedPeak[highEBound[0]]:
+            highDiff = abs(smoothedPeak[highEBound[0]] - smoothedPeak[lowEBound[0] - 1])
+            lowDiff = abs(smoothedPeak[highEBound[0] - 1] - smoothedPeak[lowEBound[0]])
+            if highDiff < lowDiff:
+                if highDiff < actualDiff:
+                    lowEBound = (lowEBound[0] - 1, smoothedPeak[lowEBound[0] - 1])
+            else:
+                if lowDiff < actualDiff:
+                    highEBound = (highEBound[0] - 1, smoothedPeak[highEBound[0] - 1])
+        else:
+            highDiff = abs(smoothedPeak[lowEBound[0]] - smoothedPeak[highEBound[0] - 1])
+            lowDiff = abs(smoothedPeak[lowEBound[0] - 1] - smoothedPeak[highEBound[0]])
+            if highDiff < lowDiff:
+                if highDiff < actualDiff:
+                    highEBound = (highEBound[0] - 1, smoothedPeak[highEBound[0] - 1])
+            else:
+                if lowDiff < actualDiff:
+                    lowEBound = (lowEBound[0] - 1, smoothedPeak[lowEBound[0] - 1])
+
+        peak = Peak()
+        peak.actualPeakIndex = peakPoint[0]
+        peak.highIndex = highEBound[0]
+        peak.lowIndex = lowEBound[0]
+        peak.peakEnergy = (data.energy[peak.highIndex] + data.energy[peak.lowIndex])/2
+
+        if abs(peak.peakEnergy - data.energy[peakPoint[0]]) > 0.5:
+            peak.peakEnergy = data.energy[peakPoint[0]]
+
+        mainPeakData.peaks.append(peak)
 
     lineSet.set_store(constants.MainPeakData.storeName, mainPeakData)
 

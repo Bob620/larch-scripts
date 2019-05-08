@@ -236,24 +236,34 @@ class LineSet(object):
                                markersize=5
                                )
 
-            for seq in store.peaks:
-                self.plot.plot(self.data.energy[seq[0][0]], store.smoothedPeak[seq[0][0]],
-                               marker='H',
-                               markersize=5
-                               )
+#            for seq in store.peaks:
+#                self.plot.plot(self.data.energy[seq[0][0]], store.smoothedPeak[seq[0][0]],
+#                               marker='H',
+#                               markersize=5
+#                               )
 
-                self.plot.plot(self.data.energy[seq[len(seq) - 1][0]], store.smoothedPeak[seq[len(seq) - 1][0]],
-                               marker='H',
-                               markersize=5
-                               )
+#                self.plot.plot(self.data.energy[seq[len(seq) - 1][0]], store.smoothedPeak[seq[len(seq) - 1][0]],
+#                               marker='H',
+#                               markersize=5
+#                               )
 
-            for seq in store.dips:
-                self.plot.plot(self.data.energy[seq[0][0]], store.smoothedPeak[seq[0][0]],
+            for peakData in store.peaks:
+                self.plot.plot(self.data.energy[peakData.lowIndex], store.smoothedPeak[peakData.lowIndex],
                                marker='*',
                                markersize=5
                                )
 
-                self.plot.plot(self.data.energy[seq[len(seq) - 1][0]], store.smoothedPeak[seq[len(seq) - 1][0]],
+                self.plot.plot(self.data.energy[peakData.actualPeakIndex], store.smoothedPeak[peakData.actualPeakIndex],
+                               marker='o',
+                               markersize=5
+                               )
+
+                self.plot.plot(peakData.peakEnergy, store.smoothedPeak[peakData.actualPeakIndex],
+                               marker='+',
+                               markersize=5
+                               )
+
+                self.plot.plot(self.data.energy[peakData.highIndex], store.smoothedPeak[peakData.highIndex],
                                marker='*',
                                markersize=5
                                )

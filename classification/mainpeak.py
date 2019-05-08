@@ -48,5 +48,34 @@ def initialPeak(lineSet):
 
 
 # Analyzes and constructs the peak definition of the second peak in the main peak sector
+# * Tall/Short/Equal defines the height relative to the initial peak
+# * Peak/Double Peak/Plateau/More than 2 Peaks
+#     Plateau - No peaks are identified, can assume it's a plateau
+#     Peak - One peak has been identified
+#     Double Peak - Two peaks have been identified
+#     More than 2 Peaks - Should never happen because there are 3 peaks in this bit, wat
 def secondPeak(lineSet):
-    pass
+    definition = []
+    store = lineSet.get_store(constants.MainPeakData.storeName)
+
+    if len(store.peaks) == 0:
+        definition.append('plateau')
+    elif len(store.peaks) == 1:
+        definition.append('peak')
+        peak = store.peaks[0]
+
+        if abs(store.smoothedPeak[peak.actualPeakIndex] - store.smoothedPeak[store.initialPeakIndex]) < 0.01:
+            definition.append('equal')
+        elif store.smoothedPeak[peak.actualPeakIndex] > store.smoothedPeak[store.initialPeakIndex]:
+            definition.append('tall')
+        else:
+            definition.append('short')
+
+    elif len(store.peaks) == 2:
+        definition.append('double peak')
+        peakOne = store.peaks[0]
+        peakTwo = store.peaks[1]
+    else:
+        definition.append('More than 2 peaks')
+
+    return definition

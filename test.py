@@ -184,7 +184,7 @@ for name in lines:
     print(''.ljust(25), '   ',
           str(' '.join(edgeClass)).ljust(46), '   ',
           str(' '.join(initialPeakClass)).ljust(46), '   ',
-          str(secondPeakClass).ljust(46), '   '
+          str(' '.join(secondPeakClass)).ljust(46), '   '
           )
 
     print('')
