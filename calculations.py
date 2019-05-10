@@ -65,6 +65,7 @@ class MainPeakData:
 
         self.shoulderBound = [0, 0]
         self.shoulderCenter = 0
+        self.shoulderCenterIndex = 0
         self.shoulderCenterActual = 0
         self.shoulderDiff = 0
 
@@ -81,6 +82,7 @@ class Peak:
         self.actualPeakIndex = 0
         self.highIndex = 0
         self.peakEnergy = 0
+        self.peakSmoothed = 0
 
 
 def pre_edge(lineSet):
@@ -373,6 +375,7 @@ def main_peak(lineSet):
         peak.highIndex = highEBound[0]
         peak.lowIndex = lowEBound[0]
         peak.peakEnergy = (data.energy[peak.highIndex] + data.energy[peak.lowIndex])/2
+        peak.peakSmoothed = smoothedPeak[peak.actualPeakIndex]
 
         if abs(peak.peakEnergy - data.energy[peakPoint[0]]) > 0.5:
             peak.peakEnergy = data.energy[peakPoint[0]]

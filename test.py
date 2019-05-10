@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from larch import Interpreter
 
-import classification
+import classification.superclass
 import classification.edge
 import classification.mainpeak
 import constants
@@ -138,6 +138,7 @@ for name in lines:
     edgeClass = classification.edge.features(lineSet)
     initialPeakClass = classification.mainpeak.initialPeak(lineSet)
     secondPeakClass = classification.mainpeak.secondPeak(lineSet)
+    superClass = classification.superclass.classify(lineSet, edgeClass, initialPeakClass, secondPeakClass)
 
     data = lineSet.get_data()
     edgeData = lineSet.get_store(constants.EdgeData.storeName)
@@ -181,7 +182,7 @@ for name in lines:
           str(data.energy[mainPeakData.peakBound[1]]).ljust(12)[:12], '   '
           )
 
-    print(''.ljust(25), '   ',
+    print(' '.join(superClass).ljust(25), '   ',
           str(' '.join(edgeClass)).ljust(46), '   ',
           str(' '.join(initialPeakClass)).ljust(46), '   ',
           str(' '.join(secondPeakClass)).ljust(46), '   '
