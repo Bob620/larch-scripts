@@ -3,7 +3,7 @@ Since XRayLarch has a lot of problems, we need to install the module manually. H
 the requirements (at least on Win10, I need to do more testing). Because of this the process is way more intensive than
 it should be.
 
-This is implemented in python 3.6/3.7
+This is implemented in python 3.6/3.7 with XrayLarch 0.9.43
 
 First off:
 ```commandline
