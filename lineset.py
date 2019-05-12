@@ -1,7 +1,5 @@
 from uuid import uuid4
 
-from matplotlib.lines import Line2D
-
 import constants
 
 

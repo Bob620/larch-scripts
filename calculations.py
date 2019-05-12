@@ -5,7 +5,6 @@ import constants
 from curve import filters, maps
 from curve import reducers
 
-import matplotlib.pyplot as plt
 from scipy import signal
 
 

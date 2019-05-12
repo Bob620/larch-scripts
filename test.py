@@ -1,8 +1,4 @@
-import math
-
-import numpy as np
 import matplotlib.pyplot as plt
-from larch import Interpreter
 
 import classification.superclass
 import classification.edge
@@ -13,7 +9,6 @@ import transformations
 from larchio import readStructDirectory
 from legend import interactive_legend
 
-larchInstance = Interpreter()
 
 baseUri = input('Enter the directory Location: ').replace('\\', '/')
 outputNameRaw = input('Enter output project name(optional, enter for none): ')

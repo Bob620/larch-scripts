@@ -14,8 +14,7 @@ def calculate_pre_edge(lineSet):
              pre1=constants.Fe.pre1,
              pre2=constants.Fe.pre2,
              norm1=constants.Fe.norm1,
-             norm2=constants.Fe.norm2,
-             _larch=larchInstance)
+             norm2=constants.Fe.norm2)
     return
 
 
@@ -36,6 +35,5 @@ def fe_calculate_abs_corr(lineSet):
               mu=data.mu,
               group=data,
               elem=constants.Fe.fe,
-              formula=lineSet.get_formula(),
-              _larch=larchInstance)
+              formula=lineSet.get_formula())
     return
