@@ -31,6 +31,7 @@ def classify(lineSet, edgeClasses, initialPeakClasses, secondPeakClasses):
         secondPeakIndex = mainPeakStore.peaks[1].actualPeakIndex
 
     superClass.append(str(initPeakHeight / secondPeakHeight).ljust(10)[:5])
+    superClass.append(str(secondPeakIndex))
     superClass.append(str(data.energy[secondPeakIndex]).ljust(10)[:8])
 
     return superClass

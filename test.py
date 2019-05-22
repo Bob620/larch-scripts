@@ -12,7 +12,10 @@ from legend import interactive_legend
 
 baseUri = input('Enter the directory Location: ').replace('\\', '/')
 outputNameRaw = input('Enter output project name(optional, enter for none): ')
-metaName = (input('Enter metadata file name(default: \'meta.csv\'): ') or 'meta.csv')
+abscorr = input('Are the athena projects corrected?(y/n default: n) ').lower().startswith('y')
+metaName = ''
+if not abscorr:
+    metaName = (input('Enter metadata file name(default: \'meta.csv\'): ') or 'meta.csv')
 # defaultFormulaRaw = input('Enter a default formula(default: skips files without formula): ').strip()
 willGraph = input('Do you want to graph these?(y/n default: n) ').lower().startswith('y')
 
@@ -32,28 +35,30 @@ lines = {}
 lineSearchSet = {}
 
 try:
-    lines, failedToRead, skippedFiles = readStructDirectory(baseUri)
+    lines, failedToRead, skippedFiles = readStructDirectory(baseUri, abscorr=abscorr)
 
     print('Failed to read in {:d} files from the directory.'.format(len(failedToRead)))
     print('Skipped {:d} files due to incorrect names or not files or no metadata.'.format(len(skippedFiles)))
 
     for uuid, lineSet in lines.items():
-        print('Pre-Processing {}'.format(lineSet.get_name()))
-        print('UUID: {}'.format(uuid))
+        if not hasattr(lineSet.data, 'norm_corr'):
+            print('Pre-Processing {}'.format(lineSet.get_name()))
+            print('UUID: {}'.format(uuid))
 
-        print('Calculating mu for fe_ka...')
-        transformations.fe_calculate_mu(lineSet)
+            print('Calculating mu for fe_ka...')
+            transformations.fe_calculate_mu(lineSet)
 
-        print('Calculating the Pre-Edge Subtraction/Normalization...')
-        transformations.calculate_pre_edge(lineSet)
+            print('Calculating the Pre-Edge Subtraction/Normalization...')
+            transformations.calculate_pre_edge(lineSet)
 
-        print('Calculating the Over Absorption...')
-        transformations.fe_calculate_abs_corr(lineSet)
+            print('Calculating the Over Absorption...')
+            transformations.fe_calculate_abs_corr(lineSet)
 
-        # print('Calculating the Baseline Subtraction...')
-        # pre_edge_baseline(energy=file,norm=file.norm_corr, group=file, emin=7105, larch=larchInstance)
+            # print('Calculating the Baseline Subtraction...')
+            # pre_edge_baseline(energy=file,norm=file.norm_corr, group=file, emin=7105, larch=larchInstance)
 
-except IOError as err:
+
+except Exception as err:
     print(err)
 
 print('Read in', len(lines), 'files.')
@@ -124,6 +129,13 @@ print(''.ljust(25), '   ',
 
 print('\n')
 
+outputFile = open(baseUri + 'fesa-output.csv', 'w')
+
+outputFile.write('file name, main class, first peak class, second peak class, first peak energy, '
+                 'first peak height, second peak energy, second peak height, peak height ratio')
+
+outputFile.close()
+
 for name in lines:
     lineSet = lines[name]
 
@@ -184,6 +196,13 @@ for name in lines:
           )
 
     print('')
+
+    outputFile = open(baseUri + 'fesa-output.csv', 'a')
+    if secondPeakClass[0] == 'plateau' or initialPeakClass[0] == 'shoulder':
+        outputFile.write('\n' + lineSet.get_name() + ',' + superClass[0] + ', ' + initialPeakClass[0] + ',' + secondPeakClass[0] + ',' + str(data.energy[mainPeakData.initialPeakIndex]) + ',' + str(data.norm_corr[mainPeakData.initialPeakIndex]) + ',' + str(data.energy[int(superClass[2])]) + ',' + str(data.norm_corr[int(superClass[2])]) + ',' + superClass[1])
+    else:
+        outputFile.write('\n' + lineSet.get_name() + ',' + superClass[0] + ', ' + initialPeakClass[0] + ',' + secondPeakClass[0] + ' ' + secondPeakClass[1] + ',' + str(data.energy[mainPeakData.initialPeakIndex]) + ',' + str(data.norm_corr[mainPeakData.initialPeakIndex]) + ',' + str(data.energy[int(superClass[2])]) + ',' + str(data.norm_corr[int(superClass[2])]) + ',' + superClass[1])
+    outputFile.close()
 
 if willGraph:
     print('Displaying graph...')

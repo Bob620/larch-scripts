@@ -73,7 +73,7 @@ class AbscorrLine:
 
 
 class LineSet(object):
-    def __init__(self, data, formula):
+    def __init__(self, data, formula=None):
         self.uuid = uuid4()
         self.data = data
         self.store = {}
@@ -81,7 +81,6 @@ class LineSet(object):
         self.plot = None
         self.abscorr = None
         self.edge = None
-        pass
 
     def get_uuid(self):
         return self.uuid.hex
